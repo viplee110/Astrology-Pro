@@ -1,0 +1,19 @@
+.server.log
+
+# Local/runtime files
+node.exe
+node/
+*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local package artifacts if the project is extended later
+node_modules/
+dist/
+build/
+.env
+.env.*

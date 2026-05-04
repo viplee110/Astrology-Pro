@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>本地高精度星盘</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="panel input-panel" aria-labelledby="input-title">
+        <div class="panel-title">
+          <h1 id="input-title">本地星盘工作台</h1>
+          <span id="engine-status" class="status-pill">初始化中</span>
+        </div>
+
+        <form id="chart-form" class="form-grid">
+          <label>
+            档案名
+            <input id="profile-name" name="profileName" value="我的本命盘" autocomplete="off" />
+          </label>
+          <label>
+            档案类型
+            <select id="subject-type" name="subjectType">
+              <option value="self">个人档案</option>
+              <option value="partner">合盘对象</option>
+              <option value="research">研究样本</option>
+            </select>
+          </label>
+          <label>
+            标签
+            <input id="tags" name="tags" placeholder="校时, 重要, 合盘" autocomplete="off" />
+          </label>
+          <label>
+            出生日期
+            <input id="birth-date" name="birthDate" type="date" value="1995-08-12" required />
+          </label>
+          <label>
+            出生时间
+            <input id="birth-time" name="birthTime" type="time" step="60" value="14:35" required />
+          </label>
+          <label class="location-field">
+            出生地
+            <input id="location-name" name="locationName" value="上海，中国" autocomplete="off" aria-expanded="false" aria-controls="location-dropdown" />
+            <div id="location-dropdown" class="location-dropdown" role="listbox"></div>
+            <span class="field-hint">点击或输入城市/区县，选择后自动填坐标和时区</span>
+          </label>
+          <label>
+            时区 / 夏令时偏移
+            <input id="timezone" name="timezone" type="number" min="-12" max="14" step="0.25" value="8" required />
+          </label>
+          <label>
+            纬度
+            <input id="latitude" name="latitude" type="number" min="-90" max="90" step="any" value="31.2304" required />
+          </label>
+          <label>
+            经度
+            <input id="longitude" name="longitude" type="number" min="-180" max="180" step="any" value="121.4737" required />
+          </label>
+          <label>
+            坐标精度
+            <select id="coordinate-precision" name="coordinatePrecision">
+              <option value="城市级">城市级</option>
+              <option value="区县级">区县级</option>
+              <option value="手动精确坐标">手动精确坐标</option>
+            </select>
+          </label>
+
+          <div class="wide compact-section">
+            <div class="section-head">
+              <h2>参数设置</h2>
+            </div>
+            <div class="mini-grid">
+              <label>
+                宫位制
+                <select id="house-system" name="houseSystem">
+                  <option value="P">Placidus</option>
+                  <option value="K">Koch</option>
+                  <option value="W">Whole Sign</option>
+                  <option value="E">Equal</option>
+                  <option value="R">Regiomontanus</option>
+                  <option value="C">Campanus</option>
+                  <option value="O">Porphyry</option>
+                  <option value="T">Topocentric</option>
+                  <option value="B">Alcabitius</option>
+                  <option value="M">Morinus</option>
+                </select>
+              </label>
+              <label>
+                黄道制
+                <select id="zodiac-mode" name="zodiacMode">
+                  <option value="tropical">Tropical</option>
+                  <option value="sidereal-lahiri">Sidereal Lahiri</option>
+                </select>
+              </label>
+              <label>
+                全局容许度
+                <input id="aspect-orb" name="aspectOrb" type="number" min="0.5" max="12" step="0.5" value="6" required />
+              </label>
+              <label>
+                格局参与点
+                <select id="pattern-participants" name="patternParticipants">
+                  <option value="core">主要行星 + 外行星</option>
+                  <option value="bodies">所有已显示星体</option>
+                  <option value="points">所有已显示星体 + 已选四轴/虚点</option>
+                </select>
+              </label>
+              <label>
+                阿拉伯点体系
+                <select id="lot-formula-set" name="lotFormulaSet">
+                  <option value="paulus">Paulus / Hermetic 七点</option>
+                  <option value="valens">Valens 四主点</option>
+                </select>
+              </label>
+            </div>
+            <div class="toggle-group">
+              <strong>相位类型</strong>
+              <div id="aspect-type-toggles" class="toggle-grid"></div>
+            </div>
+            <div class="toggle-group">
+              <strong>显示星体 / 小行星 / 交点</strong>
+              <div id="body-toggles" class="toggle-grid"></div>
+            </div>
+            <div class="toggle-group">
+              <strong>四轴 / 阿拉伯点 / 宿命点</strong>
+              <div id="point-toggles" class="toggle-grid"></div>
+            </div>
+          </div>
+
+          <details class="wide details-block">
+            <summary>预测设置</summary>
+            <div class="mini-grid">
+              <div class="settings-subhead wide">预测时间与地点</div>
+              <label>
+                目标日期
+                <input id="target-date" name="targetDate" type="date" value="2026-04-26" />
+              </label>
+              <label>
+                目标时间
+                <input id="target-time" name="targetTime" type="time" value="12:00" />
+              </label>
+              <label class="location-field">
+                目标地点
+                <input id="target-location-name" name="targetLocationName" value="上海，中国" autocomplete="off" aria-expanded="false" aria-controls="target-location-dropdown" />
+                <div id="target-location-dropdown" class="location-dropdown" role="listbox"></div>
+              </label>
+              <label>
+                目标时区
+                <input id="target-timezone" name="targetTimezone" type="number" min="-12" max="14" step="0.25" value="8" />
+              </label>
+              <label>
+                目标纬度
+                <input id="target-latitude" name="targetLatitude" type="number" min="-90" max="90" step="any" value="31.2304" />
+              </label>
+              <label>
+                目标经度
+                <input id="target-longitude" name="targetLongitude" type="number" min="-180" max="180" step="any" value="121.4737" />
+              </label>
+              <label>
+                时间线天数
+                <input id="timeline-days" name="timelineDays" type="number" min="7" max="365" step="1" value="90" />
+              </label>
+              <label>
+                精确容许度
+                <input id="timeline-orb" name="timelineOrb" type="number" min="0.05" max="2" step="0.05" value="0.25" />
+              </label>
+              <button id="calculate-predictive" type="button" class="wide ghost-button">计算预测</button>
+              <div class="settings-subhead wide">长期结构</div>
+              <label>
+                长期起始年龄
+                <input id="long-term-start-age" name="longTermStartAge" type="number" min="0" max="120" step="1" value="0" />
+              </label>
+              <label>
+                长期结束年龄
+                <input id="long-term-end-age" name="longTermEndAge" type="number" min="1" max="120" step="1" value="80" />
+              </label>
+              <label>
+                分段年数
+                <input id="long-term-segment-years" name="longTermSegmentYears" type="number" min="1" max="30" step="1" value="10" />
+              </label>
+              <label>
+                长期容许度
+                <input id="long-term-orb" name="longTermOrb" type="number" min="0.05" max="2" step="0.05" value="0.25" />
+              </label>
+              <label>
+                地点相关结构
+                <select id="long-term-location-mode" name="longTermLocationMode">
+                  <option value="birth">使用出生地</option>
+                  <option value="target">使用预测地点</option>
+                  <option value="custom">使用长期结构地点</option>
+                  <option value="yearly">按迁居计划</option>
+                </select>
+              </label>
+              <label class="location-field">
+                长期结构地点
+                <input id="long-term-location-name" name="longTermLocationName" value="上海，中国" autocomplete="off" aria-expanded="false" aria-controls="long-term-location-dropdown" />
+                <div id="long-term-location-dropdown" class="location-dropdown" role="listbox"></div>
+              </label>
+              <label>
+                长期地点时区
+                <input id="long-term-timezone" name="longTermTimezone" type="number" min="-12" max="14" step="0.25" value="8" />
+              </label>
+              <label>
+                长期地点纬度
+                <input id="long-term-latitude" name="longTermLatitude" type="number" min="-90" max="90" step="any" value="31.2304" />
+              </label>
+              <label>
+                长期地点经度
+                <input id="long-term-longitude" name="longTermLongitude" type="number" min="-180" max="180" step="any" value="121.4737" />
+              </label>
+              <div class="settings-subhead wide">迁居计划</div>
+              <div class="relocation-builder wide">
+                <div class="mini-grid">
+                  <label>
+                    生效日期
+                    <input id="relocation-date" type="date" />
+                  </label>
+                  <label class="location-field">
+                    迁居地点
+                    <input id="relocation-location-name" autocomplete="off" aria-expanded="false" aria-controls="relocation-location-dropdown" />
+                    <div id="relocation-location-dropdown" class="location-dropdown" role="listbox"></div>
+                  </label>
+                  <label>
+                    迁居时区
+                    <input id="relocation-timezone" type="number" min="-12" max="14" step="0.25" value="8" />
+                  </label>
+                  <label>
+                    迁居纬度
+                    <input id="relocation-latitude" type="number" min="-90" max="90" step="any" />
+                  </label>
+                  <label>
+                    迁居经度
+                    <input id="relocation-longitude" type="number" min="-180" max="180" step="any" />
+                  </label>
+                  <button id="add-relocation" type="button" class="ghost-button">加入迁居计划</button>
+                </div>
+                <div id="relocation-list" class="relocation-list"></div>
+              </div>
+              <label class="wide">
+                迁居计划原始数据
+                <textarea id="relocation-plan" name="relocationPlan" rows="3" placeholder="每行：2028-09-01|北京，中国&#10;或：2031-01-15|New York|40.7128|-74.0060|-5"></textarea>
+              </label>
+            </div>
+          </details>
+
+          <details class="wide details-block">
+            <summary>合盘对象</summary>
+            <div class="mini-grid">
+              <label>
+                对象名称
+                <input id="partner-name" name="partnerName" placeholder="对方姓名/代号" />
+              </label>
+              <label>
+                出生日期
+                <input id="partner-date" name="partnerDate" type="date" />
+              </label>
+              <label>
+                出生时间
+                <input id="partner-time" name="partnerTime" type="time" step="60" />
+              </label>
+              <label class="location-field">
+                出生地
+                <input id="partner-location-name" name="partnerLocationName" autocomplete="off" aria-expanded="false" aria-controls="partner-location-dropdown" />
+                <div id="partner-location-dropdown" class="location-dropdown" role="listbox"></div>
+              </label>
+              <label>
+                时区
+                <input id="partner-timezone" name="partnerTimezone" type="number" min="-12" max="14" step="0.25" value="8" />
+              </label>
+              <label>
+                纬度
+                <input id="partner-latitude" name="partnerLatitude" type="number" min="-90" max="90" step="any" />
+              </label>
+              <label>
+                经度
+                <input id="partner-longitude" name="partnerLongitude" type="number" min="-180" max="180" step="any" />
+              </label>
+              <label class="toggle-item wide">
+                <input id="save-partner-profile" type="checkbox" checked />
+                保存档案时同步保存合盘对象
+              </label>
+              <button id="calculate-relationship" type="button" class="wide ghost-button">计算合盘</button>
+            </div>
+          </details>
+
+          <label class="wide">
+            备注
+            <textarea id="notes" name="notes" rows="4" placeholder="记录校时、资料来源、观察笔记"></textarea>
+          </label>
+
+          <div class="button-row wide">
+            <button id="calculate-natal" type="button">计算本命</button>
+            <button id="calculate-button" type="submit">计算全部</button>
+            <button id="save-button" type="button">保存档案</button>
+            <button id="refresh-saved" type="button" class="ghost-button">刷新档案</button>
+          </div>
+
+          <div class="export-row wide">
+            <button type="button" data-export="md" class="ghost-button">下载 MD</button>
+          </div>
+
+          <details class="wide details-block">
+            <summary>高级导出</summary>
+            <div class="export-row">
+              <button type="button" data-export="png" class="ghost-button">PNG</button>
+              <button type="button" data-export="pdf" class="ghost-button">PDF</button>
+              <button type="button" data-export="txt" class="ghost-button">TXT</button>
+              <button type="button" data-export="csv" class="ghost-button">CSV</button>
+              <button type="button" data-export="json" class="ghost-button">JSON</button>
+            </div>
+          </details>
+        </form>
+
+        <div class="saved-block">
+          <div class="section-head"><h2>本地档案</h2></div>
+          <div id="saved-list" class="saved-list"></div>
+        </div>
+      </section>
+
+      <section class="panel chart-panel" aria-labelledby="chart-title">
+        <div class="section-head">
+          <h2 id="chart-title">星盘轮盘</h2>
+          <span id="chart-meta" class="muted"></span>
+        </div>
+        <div id="chart-wheel" class="wheel-frame"></div>
+        <div id="summary-grid" class="summary-grid"></div>
+        <div class="tabs" id="data-tabs"></div>
+        <div id="data-panel" class="data-panel"></div>
+      </section>
+
+      <section class="panel markdown-panel" aria-labelledby="markdown-title">
+        <div class="section-head">
+          <h2 id="markdown-title">文字版星盘</h2>
+          <button id="copy-button" type="button" class="ghost-button">复制当前</button>
+        </div>
+        <div class="text-tools">
+          <div class="copy-row">
+            <button type="button" class="ghost-button" data-copy-mode="full">复制完整</button>
+            <button type="button" class="ghost-button" data-copy-mode="natal">复制本命</button>
+            <button type="button" class="ghost-button" data-copy-mode="predictive">复制预测</button>
+            <button type="button" class="ghost-button" data-copy-mode="longTerm">复制长期</button>
+            <button type="button" class="ghost-button" data-copy-mode="relationship">复制合盘</button>
+            <button type="button" class="ghost-button" data-copy-mode="classical">复制古典</button>
+          </div>
+          <label>
+            文本模板
+            <select id="text-mode">
+              <option value="full">完整专业版</option>
+              <option value="natal">本命盘版</option>
+              <option value="predictive">预测版</option>
+              <option value="longTerm">长期结构版</option>
+              <option value="relationship">合盘版</option>
+              <option value="classical">古典版</option>
+              <option value="custom">自定义模板</option>
+            </select>
+          </label>
+          <textarea id="custom-template" rows="5" placeholder="可用占位符：{{name}} {{birth}} {{place}} {{sun}} {{moon}} {{asc}} {{mc}} {{ic}} {{vertex}} {{fortune}} {{aspects}}"></textarea>
+        </div>
+        <textarea id="markdown-output" spellcheck="false"></textarea>
+      </section>
+    </main>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
