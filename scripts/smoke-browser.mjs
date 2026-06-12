@@ -76,6 +76,16 @@ try {
       horizontalOverflow: document.body.scrollWidth > window.innerWidth + 2,
     }));
 
+    await page.click("[data-tab='guide']");
+    const guide = await page.evaluate(() => ({
+      cardCount: document.querySelectorAll(".guide-card").length,
+      text: document.querySelector("#data-panel")?.innerText.slice(0, 500),
+    }));
+
+    await page.click("[data-copy-mode='guide']");
+    const guideToast = await page.locator(".toast").last().textContent({ timeout: 5000 }).catch(() => "");
+    await page.waitForTimeout(1900);
+
     await page.click("[data-ai-prompt='natal']");
     const toast = await page.locator(".toast").last().textContent({ timeout: 5000 }).catch(() => "");
 
@@ -85,7 +95,7 @@ try {
       h1: document.querySelector("h1")?.textContent,
     }));
 
-    results.push({ viewport: viewport.name, before, afterNatal, toast, privacy, consoleErrors, failedResponses });
+    results.push({ viewport: viewport.name, before, afterNatal, guide, guideToast, toast, privacy, consoleErrors, failedResponses });
     await page.close();
   }
 } finally {
@@ -97,6 +107,10 @@ const failures = results.flatMap((result) => [
   ...result.failedResponses.map((response) => `${result.viewport} ${response.status}: ${response.url}`),
   result.before.hasAiButtons >= 4 ? null : `${result.viewport}: missing AI prompt buttons`,
   result.afterNatal.svgCount === 1 ? null : `${result.viewport}: chart SVG missing`,
+  result.afterNatal.dataTabs?.includes("快速解释") ? null : `${result.viewport}: quick guide tab missing`,
+  result.guide.cardCount >= 8 ? null : `${result.viewport}: quick guide cards missing`,
+  result.guideToast?.includes("解释") ? null : `${result.viewport}: guide copy failed`,
+  result.toast?.includes("AI 本命") ? null : `${result.viewport}: AI prompt copy failed`,
   result.afterNatal.horizontalOverflow ? `${result.viewport}: horizontal overflow` : null,
   result.privacy.h1 === "隐私政策" ? null : `${result.viewport}: privacy page failed`,
 ].filter(Boolean));

@@ -7,6 +7,7 @@ import {
   VIRTUAL_POINT_DEFINITIONS,
 } from "./astro/constants.js";
 import { formatDecimal, formatDms } from "./astro/format.js";
+import { createQuickInterpretation } from "./astro/interpretations.js";
 import { findPlaceByName, loadPlaces, placeMatches, timeZoneIdForPlace } from "./astro/places.js";
 import { offsetForLocalTime } from "./astro/timezone.js";
 import { SwissChartEngine } from "./astro/swissEngine.js";
@@ -135,14 +136,20 @@ document.querySelector("#calculate-predictive").addEventListener("click", () => 
 document.querySelector("#calculate-relationship").addEventListener("click", () => calculateAndRender("relationship"));
 
 els.copyButton.addEventListener("click", async () => {
-  if (!currentMarkdown) return;
+  if (!currentMarkdown) {
+    toast("请先计算星盘");
+    return;
+  }
   await navigator.clipboard.writeText(currentMarkdown);
   toast("已复制当前文字版");
 });
 
 document.querySelectorAll("[data-copy-mode]").forEach((button) => {
   button.addEventListener("click", async () => {
-    if (!currentWorkbook) return;
+    if (!currentWorkbook) {
+      toast("请先计算星盘");
+      return;
+    }
     await navigator.clipboard.writeText(createMarkdown(currentWorkbook, button.dataset.copyMode, els.customTemplate.value));
     toast(`已复制${button.textContent.replace("复制", "")}`);
   });
@@ -150,7 +157,10 @@ document.querySelectorAll("[data-copy-mode]").forEach((button) => {
 
 document.querySelectorAll("[data-ai-prompt]").forEach((button) => {
   button.addEventListener("click", async () => {
-    if (!currentWorkbook) return;
+    if (!currentWorkbook) {
+      toast("请先计算星盘");
+      return;
+    }
     const mode = button.dataset.aiPrompt;
     await navigator.clipboard.writeText(createAiPrompt(currentWorkbook, mode));
     toast(`已复制 ${button.textContent.trim()} Prompt`);
@@ -158,7 +168,10 @@ document.querySelectorAll("[data-ai-prompt]").forEach((button) => {
 });
 
 els.saveButton.addEventListener("click", async () => {
-  if (!currentWorkbook) return;
+  if (!currentWorkbook) {
+    toast("请先计算星盘");
+    return;
+  }
   const record = await saveChart(currentWorkbook, currentMarkdown);
   currentWorkbook.natal.input.id = record.id;
   if (document.querySelector("#save-partner-profile")?.checked && currentWorkbook.relationship?.personB) {
@@ -184,7 +197,10 @@ els.customTemplate.addEventListener("input", updateMarkdown);
 
 document.querySelectorAll("[data-export]").forEach((button) => {
   button.addEventListener("click", () => {
-    if (!currentWorkbook) return;
+    if (!currentWorkbook) {
+      toast("请先计算星盘");
+      return;
+    }
     exportWorkbook(currentWorkbook, button.dataset.export, els.textMode.value);
   });
 });
@@ -433,6 +449,7 @@ function updateMarkdown() {
 function renderTabs() {
   const tabs = [
     ["natal", "本命数据"],
+    ["guide", "快速解释"],
     ["rulers", "飞星/定位"],
     ["predictive", "行运/推运"],
     ["longTerm", "长期结构"],
@@ -472,6 +489,24 @@ function renderDataPanel() {
       `<h3 class="subhead">相位</h3>`,
       table(["A", "相位", "B", "容许度", "入出相"], chart.aspects.map((aspect) => [aspect.planetA, aspect.aspect, aspect.planetB, aspect.orbText, aspect.applying ? "入相" : "出相"])),
     ].join("");
+  }
+  if (currentTab === "guide") {
+    const guide = createQuickInterpretation(chart);
+    els.dataPanel.innerHTML = [
+      `<div class="guide-grid"><article class="guide-card guide-card-wide"><strong>总览</strong>${guide.overview.map((item) => `<p>${escapeHtml(item)}</p>`).join("")}</article></div>`,
+      `<h3 class="subhead">核心落点</h3>`,
+      `<div class="guide-grid">${guide.corePlacements.map((item) => guideCard(item.title, item.text)).join("")}</div>`,
+      `<h3 class="subhead">四轴提示</h3>`,
+      `<div class="guide-grid">${guide.angles.map((item) => guideCard(item.title, item.text)).join("")}</div>`,
+      `<h3 class="subhead">重点相位</h3>`,
+      `<div class="guide-grid">${guide.topAspects.map((item) => guideCard(item.title, item.text)).join("")}</div>`,
+      `<h3 class="subhead">宫位与格局</h3>`,
+      guide.houseFocus.length || guide.patternInsights.length
+        ? `<div class="guide-grid">${[...guide.houseFocus, ...guide.patternInsights].map((item) => guideCard("结构提示", item)).join("")}</div>`
+        : `<p class="muted">当前没有明显的宫位集中或主要相位格局。</p>`,
+      `<p class="muted">${escapeHtml(guide.disclaimer)}</p>`,
+    ].join("");
+    return;
   }
   if (currentTab === "predictive") {
     if (!predictive) {
@@ -788,6 +823,10 @@ function setupLocationSearch(config) {
 
 function table(headers, rows) {
   return `<table><thead><tr>${headers.map((item) => `<th>${escapeHtml(item)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((item) => `<td>${escapeHtml(item)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+function guideCard(title, text) {
+  return `<article class="guide-card"><strong>${escapeHtml(title)}</strong><p>${escapeHtml(text)}</p></article>`;
 }
 
 function patternEvidenceText(pattern) {

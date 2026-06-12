@@ -1,4 +1,5 @@
 import { formatDecimal, formatDms } from "../astro/format.js";
+import { quickInterpretationMarkdown } from "../astro/interpretations.js";
 
 export function createMarkdown(workbook, mode = "full", customTemplate = "") {
   const chart = workbook.natal || workbook;
@@ -6,6 +7,7 @@ export function createMarkdown(workbook, mode = "full", customTemplate = "") {
 
   const sections = {
     natal: natalSection(chart),
+    guide: quickInterpretationMarkdown(chart),
     tables: tablesSection(chart),
     rulers: rulersSection(chart),
     stats: statsSection(chart),
@@ -15,12 +17,13 @@ export function createMarkdown(workbook, mode = "full", customTemplate = "") {
     relationship: workbook.relationship ? relationshipSection(workbook.relationship) : "",
   };
 
-  const selected = mode === "natal" ? ["natal", "tables", "rulers", "stats"]
-    : mode === "predictive" ? ["natal", "predictive", "longTerm"]
+  const selected = mode === "natal" ? ["natal", "guide", "tables", "rulers", "stats"]
+    : mode === "guide" ? ["natal", "guide"]
+      : mode === "predictive" ? ["natal", "predictive", "longTerm"]
       : mode === "relationship" ? ["natal", "relationship"]
         : mode === "classical" ? ["natal", "classical"]
           : mode === "longTerm" ? ["natal", "longTerm"]
-            : ["natal", "tables", "rulers", "stats", "classical", "predictive", "longTerm", "relationship"];
+            : ["natal", "guide", "tables", "rulers", "stats", "classical", "predictive", "longTerm", "relationship"];
 
   return `${selected.map((key) => sections[key]).filter(Boolean).join("\n\n")}\n`;
 }

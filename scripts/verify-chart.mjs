@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { DEFAULT_ASPECT_ANGLES, DEFAULT_BODY_KEYS, DEFAULT_POINT_KEYS, HOUSE_SYSTEMS } from "../src/astro/constants.js";
 import { minAngle, toUtcParts } from "../src/astro/format.js";
+import { createQuickInterpretation } from "../src/astro/interpretations.js";
 import { offsetForLocalTime } from "../src/astro/timezone.js";
 import { SwissChartEngine } from "../src/astro/swissEngine.js";
 import { createAiPrompt, createMarkdown } from "../src/export/markdown.js";
@@ -70,6 +71,7 @@ try {
   assert.ok(Array.isArray(relationship.synastry), "synastry should be an array");
 
   const workbook = { natal, predictive, relationship, longTerm: engine.calculateLongTermStructure(SAMPLE_INPUT, OPTIONS, natal) };
+  verifyQuickInterpretation(natal);
   verifyExports(workbook);
 
   const summary = {
@@ -177,11 +179,22 @@ function verifyHouseSystems() {
 
 function verifyExports(workbook) {
   const markdown = createMarkdown(workbook, "full");
+  const guideMarkdown = createMarkdown(workbook, "guide");
   const prompt = createAiPrompt(workbook, "natal");
   assert.ok(markdown.includes("## 出生资料"), "markdown should include birth data");
+  assert.ok(markdown.includes("## 核心落点"), "full markdown should include quick interpretation");
+  assert.ok(guideMarkdown.includes("快速星象解释"), "guide markdown should include quick interpretation title");
   assert.ok(markdown.includes("## 行星落点"), "markdown should include planet table");
   assert.ok(prompt.includes("不要编造资料里没有的星体位置"), "AI prompt should constrain hallucination");
   assert.ok(prompt.includes("以下是结构化星盘资料"), "AI prompt should include chart data marker");
+}
+
+function verifyQuickInterpretation(chart) {
+  const guide = createQuickInterpretation(chart);
+  assert.ok(guide.overview.length >= 2, "quick guide should include overview insights");
+  assert.ok(guide.corePlacements.some((item) => item.title.includes("太阳")), "quick guide should explain Sun placement");
+  assert.ok(guide.angles.some((item) => item.title.includes("上升")), "quick guide should explain ASC");
+  assert.ok(guide.topAspects.length > 0, "quick guide should include top aspects");
 }
 
 function pick(chart, key) {
