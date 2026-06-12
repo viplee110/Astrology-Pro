@@ -63,6 +63,11 @@ export async function deleteChart(id) {
   return transaction(db, "readwrite", (store) => store.delete(id));
 }
 
+export async function clearCharts() {
+  const db = await openChartDb();
+  return transaction(db, "readwrite", (store) => store.clear());
+}
+
 function transaction(db, mode, operation) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, mode);

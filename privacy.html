@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>隐私政策 - Astrology Pro</title>
+    <meta name="description" content="Astrology Pro 的隐私政策：星盘资料在浏览器本地计算和保存，不主动上传到服务器。" />
+    <link rel="canonical" href="https://astrology-pro.vercel.app/privacy.html" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="legal-page">
+      <article class="legal-card">
+        <p><a href="./index.html">返回 Astrology Pro</a></p>
+        <h1>隐私政策</h1>
+        <p>Astrology Pro 是本地隐私优先的开源星盘工具。默认情况下，你输入的出生日期、出生时间、地点、备注和保存的档案会在浏览器本地处理。</p>
+
+        <h2>本地计算与保存</h2>
+        <ul>
+          <li>星盘计算在你的浏览器中完成，核心计算由本项目随附的 Swiss Ephemeris WASM 文件执行。</li>
+          <li>保存档案使用浏览器 IndexedDB，本项目不会主动把档案上传到服务器。</li>
+          <li>你可以在页面中清空本地档案，也可以通过浏览器设置删除站点数据。</li>
+        </ul>
+
+        <h2>第三方 AI</h2>
+        <p>当你使用“AI 解读助手”复制 Prompt 后，只有在你主动粘贴到 ChatGPT、Claude、Gemini 或其他第三方 AI 服务时，相关资料才会离开本站。第三方平台会按照它们自己的隐私政策处理这些内容。</p>
+
+        <h2>托管与日志</h2>
+        <p>本站当前托管在 Vercel。Vercel 可能会为安全、性能和故障排查保存访问日志，例如 IP 地址、请求路径、浏览器信息和访问时间。本站代码不读取这些日志，也不把出生资料发送给 Vercel 后端函数。</p>
+
+        <h2>广告与分析</h2>
+        <p>当前版本未内置广告脚本或第三方统计脚本。若未来加入 Google AdSense 或分析工具，页面会更新本政策并说明 cookies、广告标识符和数据用途。</p>
+
+        <h2>开源</h2>
+        <p>源码公开在 <a href="https://github.com/viplee110/Astrology-Pro" target="_blank" rel="noreferrer">GitHub</a>。你可以检查实际数据处理逻辑，也可以自行部署。</p>
+
+        <p class="muted">最后更新：2026-06-13</p>
+      </article>
+    </main>
+  </body>
+</html>

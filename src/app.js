@@ -11,8 +11,8 @@ import { findPlaceByName, loadPlaces, placeMatches, timeZoneIdForPlace } from ".
 import { offsetForLocalTime } from "./astro/timezone.js";
 import { SwissChartEngine } from "./astro/swissEngine.js";
 import { exportWorkbook } from "./export/exporters.js";
-import { createMarkdown } from "./export/markdown.js";
-import { deleteChart, getChart, listCharts, saveChart } from "./storage/db.js";
+import { createAiPrompt, createMarkdown } from "./export/markdown.js";
+import { clearCharts, deleteChart, getChart, listCharts, saveChart } from "./storage/db.js";
 import { renderChartWheel, renderSummary } from "./ui/chartWheel.js";
 
 const els = {
@@ -25,6 +25,7 @@ const els = {
   copyButton: document.querySelector("#copy-button"),
   saveButton: document.querySelector("#save-button"),
   refreshSaved: document.querySelector("#refresh-saved"),
+  clearSaved: document.querySelector("#clear-saved"),
   savedList: document.querySelector("#saved-list"),
   textMode: document.querySelector("#text-mode"),
   customTemplate: document.querySelector("#custom-template"),
@@ -147,6 +148,15 @@ document.querySelectorAll("[data-copy-mode]").forEach((button) => {
   });
 });
 
+document.querySelectorAll("[data-ai-prompt]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    if (!currentWorkbook) return;
+    const mode = button.dataset.aiPrompt;
+    await navigator.clipboard.writeText(createAiPrompt(currentWorkbook, mode));
+    toast(`已复制 ${button.textContent.trim()} Prompt`);
+  });
+});
+
 els.saveButton.addEventListener("click", async () => {
   if (!currentWorkbook) return;
   const record = await saveChart(currentWorkbook, currentMarkdown);
@@ -160,6 +170,14 @@ els.saveButton.addEventListener("click", async () => {
 });
 
 els.refreshSaved.addEventListener("click", renderSavedList);
+
+els.clearSaved?.addEventListener("click", async () => {
+  const confirmed = confirm("确定清空本浏览器中的所有本地档案吗？此操作不会影响 GitHub 或 Vercel。");
+  if (!confirmed) return;
+  await clearCharts();
+  await renderSavedList();
+  toast("已清空本地档案");
+});
 
 els.textMode.addEventListener("change", updateMarkdown);
 els.customTemplate.addEventListener("input", updateMarkdown);

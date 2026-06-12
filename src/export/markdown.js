@@ -25,6 +25,61 @@ export function createMarkdown(workbook, mode = "full", customTemplate = "") {
   return `${selected.map((key) => sections[key]).filter(Boolean).join("\n\n")}\n`;
 }
 
+export function createAiPrompt(workbook, mode = "natal") {
+  const dataMode = mode === "predictive" ? "predictive"
+    : mode === "relationship" ? "relationship"
+      : mode === "classical" ? "classical"
+        : "natal";
+  const chart = workbook.natal || workbook;
+  const profileName = chart.input?.profileName || "未命名星盘";
+  const task = {
+    natal: "请做一份本命盘解读",
+    predictive: "请做一份行运与长期结构解读",
+    relationship: "请做一份合盘关系分析",
+    classical: "请做一份偏古典占星口径的结构分析",
+  }[dataMode];
+  const focus = {
+    natal: [
+      "先总结人格核心、情绪需求与行动模式。",
+      "重点分析太阳、月亮、上升、命主星、宫位集中、主要相位与显著格局。",
+      "最后给出事业、关系、成长建议。",
+    ],
+    predictive: [
+      "先区分短期行运、次限、太阳弧、返照和长期结构。",
+      "按重要性列出未来主题、时间窗口、机会与压力。",
+      "最后给出可执行的观察重点和行动建议。",
+    ],
+    relationship: [
+      "先分别概括两人的关系需求与互动风格。",
+      "重点分析比较盘相位、组合盘/时空中点盘主题与潜在冲突。",
+      "最后给出沟通、边界与长期相处建议。",
+    ],
+    classical: [
+      "优先使用庙旺弱陷、昼夜、宫主飞宫、接纳、互容、福点等结构。",
+      "请区分本质力量、偶然力量和相位触发。",
+      "最后给出清晰的强弱判断与现实层面的建议。",
+    ],
+  }[dataMode];
+
+  return [
+    `你是一名严谨的占星分析助手。${task}。`,
+    "",
+    "要求：",
+    "1. 只能依据下面的星盘资料分析，不要编造资料里没有的星体位置、宫位或相位。",
+    "2. 先给结论摘要，再分主题展开，最后给可执行建议。",
+    "3. 遇到不确定或资料不足时，请明确说明不确定性。",
+    "4. 保持语言清晰、具体、尊重当事人，不做恐吓式断言。",
+    ...focus.map((item, index) => `${index + 5}. ${item}`),
+    "",
+    `星盘对象：${profileName}`,
+    "",
+    "以下是结构化星盘资料：",
+    "",
+    createMarkdown(workbook, dataMode).trim(),
+    "",
+  ].join("\n");
+}
+
 export function createPlainText(workbook, mode = "full") {
   return createMarkdown(workbook, mode)
     .replace(/^#+\s*/gm, "")

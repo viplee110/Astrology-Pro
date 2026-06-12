@@ -1,5 +1,12 @@
 # Third Party Notices
 
+## Project license route
+
+- Project: Astrology Pro
+- Public source: https://github.com/viplee110/Astrology-Pro
+- License route for this public version: AGPL-3.0-or-later
+- Notes: This route is chosen because the project includes Swiss Ephemeris related components. Proprietary or closed-source commercial use should review Swiss Ephemeris Professional License requirements.
+
 ## swisseph-wasm
 
 - Source: https://github.com/prolaxu/swisseph-wasm
@@ -13,8 +20,8 @@
 ## Swiss Ephemeris
 
 - Source: https://www.astro.com/swisseph/
-- License model: GPL / Swiss Ephemeris Professional License
-- Notes: Commercial or proprietary distribution may require a professional license from Astrodienst AG.
+- License model: AGPL / Swiss Ephemeris Professional License
+- Notes: Public open-source use should comply with the AGPL route. Commercial or proprietary distribution may require a professional license from Astrodienst AG.
 
 ## city-geo
 
