@@ -116,24 +116,53 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-strong); 
 
 .wheel-frame { align-items: center; display: flex; justify-content: center; min-height: 560px; overflow: visible; position: relative; }
 .chart-svg { height: auto; max-height: min(72vh, 780px); max-width: 100%; width: min(100%, 780px); }
-.zodiac-label { fill: #596372; font-size: 25px; text-anchor: middle; dominant-baseline: middle; }
-.house-label { fill: #8a6c4c; font-size: 13px; font-weight: 650; text-anchor: middle; dominant-baseline: middle; }
-.planet-label { fill: #1f2933; font-size: 21px; font-weight: 750; text-anchor: middle; dominant-baseline: middle; }
-.virtual-point-label { fill: #6f5b8e; font-size: 15px; font-weight: 750; text-anchor: middle; dominant-baseline: middle; }
-.angle-label { fill: #7a4f2b; font-size: 15px; font-weight: 750; text-anchor: middle; dominant-baseline: middle; }
-.aspect-line { opacity: 0.38; }
-.planet-leader-line { opacity: 0.48; pointer-events: none; stroke: #b9aa98; stroke-linecap: round; stroke-width: 1; }
+.sign-band { opacity: 0.86; pointer-events: none; }
+.degree-tick { opacity: 0.78; pointer-events: none; stroke-linecap: round; }
+.degree-tick-major { opacity: 0.95; }
+.zodiac-label,
+.house-label,
+.planet-label,
+.virtual-point-label,
+.angle-label {
+  dominant-baseline: middle;
+  paint-order: stroke;
+  stroke: #fffaf1;
+  stroke-linejoin: round;
+  text-anchor: middle;
+}
+.zodiac-label { fill: #566071; font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", serif; font-size: 25px; stroke-width: 5; }
+.house-label { fill: #876846; font-size: 13px; font-weight: 700; stroke-width: 4; }
+.planet-label { fill: #172033; font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", serif; font-size: 22px; font-weight: 800; stroke-width: 5.5; }
+.virtual-point-label { fill: #6b568d; font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", serif; font-size: 15px; font-weight: 800; stroke-width: 4.5; }
+.angle-label { fill: #704a2a; font-size: 15px; font-weight: 800; stroke-width: 5.5; }
+.aspect-line { opacity: 0.34; stroke-linecap: round; transition: opacity 120ms ease, stroke-width 120ms ease; }
+.aspect-conjunction { opacity: 0.46; }
+.aspect-supportive { opacity: 0.34; }
+.aspect-dynamic { opacity: 0.4; }
+.aspect-adjusting,
+.aspect-minor { opacity: 0.24; stroke-dasharray: 4 5; }
+.angle-axis { opacity: 0.72; stroke-linecap: round; }
+.house-cusp-line,
+.sign-cusp-line { stroke-linecap: round; }
+.planet-leader-line { opacity: 0.5; pointer-events: none; stroke: #aa9b89; stroke-linecap: round; stroke-width: 1; }
 .chart-hover-target { cursor: help; }
 .chart-hover-target:hover .planet-label,
 .chart-hover-target:hover .virtual-point-label,
 .chart-hover-target:hover .angle-label,
 .chart-hover-target:hover .zodiac-label,
 .chart-hover-target:hover .house-label { fill: var(--accent-strong); }
-.chart-hover-target:hover .aspect-line { opacity: 0.9; stroke-width: 2; }
+.chart-hover-target:hover .aspect-line { opacity: 0.92; stroke-width: 2.4; }
 .chart-hover-target:hover .house-cusp-line,
 .chart-hover-target:hover .sign-cusp-line { stroke: var(--accent-strong); stroke-width: 2; }
 .chart-hover-target:hover + .planet-leader-line,
 .chart-hover-target:hover .planet-leader-line { opacity: 0.9; stroke: var(--accent-strong); }
+.chart-hover-target.is-related .planet-label,
+.chart-hover-target.is-related .virtual-point-label { fill: var(--accent-strong); }
+.chart-hover-target.is-related .aspect-line { opacity: 0.92; stroke-width: 2.4; }
+.chart-hover-target.is-dimmed .planet-label,
+.chart-hover-target.is-dimmed .virtual-point-label { opacity: 0.3; }
+.aspect-target.is-dimmed .aspect-line { opacity: 0.07; }
+.aspect-target.is-related .aspect-hit { stroke-width: 24; }
 .label-hit { fill: transparent; pointer-events: all; }
 .aspect-hit { stroke: transparent; stroke-linecap: round; stroke-width: 18; pointer-events: stroke; }
 .chart-tooltip {
@@ -290,6 +319,11 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent-strong); 
   .form-grid, .mini-grid, .summary-grid, .button-row, .export-row, .details-block .export-row, .toggle-grid, .copy-row, .ai-copy-row, .guide-grid { grid-template-columns: 1fr; }
   .wheel-frame { min-height: 360px; }
   .chart-svg { max-height: 460px; }
+  .zodiac-label { font-size: 23px; stroke-width: 4.5; }
+  .planet-label { font-size: 20px; stroke-width: 5; }
+  .angle-label { font-size: 13px; }
+  .aspect-adjusting,
+  .aspect-minor { opacity: 0.16; }
   .data-panel { max-height: none; }
   .toast { bottom: 88px; left: 12px; right: 12px; text-align: center; }
   .mobile-action-bar {

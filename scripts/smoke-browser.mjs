@@ -79,9 +79,25 @@ try {
       dataTabs: document.querySelector("#data-tabs")?.innerText,
       activeTab: document.querySelector(".tab-button.active")?.textContent,
       guideCards: document.querySelectorAll(".guide-card").length,
+      wheelStats: {
+        signBands: document.querySelectorAll(".sign-band").length,
+        degreeTicks: document.querySelectorAll(".degree-tick").length,
+        angleAxes: document.querySelectorAll(".angle-axis").length,
+        aspectTargets: document.querySelectorAll(".aspect-target").length,
+        planetTargets: document.querySelectorAll("[data-body]").length,
+      },
       resultActions: document.querySelector(".result-actions")?.innerText,
       markdownStart: document.querySelector("#markdown-output")?.value.slice(0, 220),
       horizontalOverflow: document.body.scrollWidth > window.innerWidth + 2,
+    }));
+
+    await page.hover("[data-body='sun']");
+    const hoverStats = await page.evaluate(() => ({
+      relatedBodies: document.querySelectorAll("[data-body].is-related").length,
+      dimmedBodies: document.querySelectorAll("[data-body].is-dimmed").length,
+      relatedAspects: document.querySelectorAll(".aspect-target.is-related").length,
+      dimmedAspects: document.querySelectorAll(".aspect-target.is-dimmed").length,
+      tooltipText: document.querySelector(".chart-tooltip.open")?.textContent || "",
     }));
 
     await page.click(".result-actions [data-quick-action='copy-guide']");
@@ -135,7 +151,7 @@ try {
       h1: document.querySelector("h1")?.textContent,
     }));
 
-    results.push({ viewport: viewport.name, before, afterNatal, resultActionToast, guide, guideToast, toast, shareToast, shareUrl, shared, privacy, learn, methodology, consoleErrors, failedResponses });
+    results.push({ viewport: viewport.name, before, afterNatal, hoverStats, resultActionToast, guide, guideToast, toast, shareToast, shareUrl, shared, privacy, learn, methodology, consoleErrors, failedResponses });
     await page.close();
   }
 } finally {
@@ -152,6 +168,14 @@ const failures = results.flatMap((result) => [
   result.viewport === "mobile" && !result.before.mobileActionBarVisible ? `${result.viewport}: mobile action bar hidden` : null,
   result.viewport === "desktop" && result.before.mobileActionBarVisible ? `${result.viewport}: mobile action bar visible on desktop` : null,
   result.afterNatal.svgCount === 1 ? null : `${result.viewport}: chart SVG missing`,
+  result.afterNatal.wheelStats?.signBands === 12 ? null : `${result.viewport}: zodiac sign bands missing`,
+  result.afterNatal.wheelStats?.degreeTicks === 36 ? null : `${result.viewport}: degree ticks missing`,
+  result.afterNatal.wheelStats?.angleAxes >= 4 ? null : `${result.viewport}: angle axes missing`,
+  result.afterNatal.wheelStats?.aspectTargets > 0 ? null : `${result.viewport}: aspect interaction targets missing`,
+  result.afterNatal.wheelStats?.planetTargets >= 10 ? null : `${result.viewport}: planet interaction targets missing`,
+  result.hoverStats?.relatedBodies > 1 ? null : `${result.viewport}: planet hover related bodies missing`,
+  result.hoverStats?.relatedAspects > 0 ? null : `${result.viewport}: planet hover related aspects missing`,
+  result.hoverStats?.tooltipText?.includes("太阳") ? null : `${result.viewport}: planet hover tooltip missing`,
   result.afterNatal.dataTabs?.includes("快速解释") ? null : `${result.viewport}: quick guide tab missing`,
   result.afterNatal.activeTab?.includes("快速解释") ? null : `${result.viewport}: quick guide is not the default result tab`,
   result.afterNatal.guideCards >= 8 ? null : `${result.viewport}: default guide cards missing`,
