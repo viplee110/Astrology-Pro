@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { DEFAULT_ASPECT_ANGLES, DEFAULT_BODY_KEYS, DEFAULT_POINT_KEYS } from "../src/astro/constants.js";
+import { DEFAULT_ASPECT_ANGLES, DEFAULT_BODY_KEYS, DEFAULT_POINT_KEYS, HOUSE_SYSTEMS } from "../src/astro/constants.js";
 import { minAngle, toUtcParts } from "../src/astro/format.js";
+import { offsetForLocalTime } from "../src/astro/timezone.js";
 import { SwissChartEngine } from "../src/astro/swissEngine.js";
 import { createAiPrompt, createMarkdown } from "../src/export/markdown.js";
 
@@ -53,10 +54,12 @@ const engine = await new SwissChartEngine().init();
 
 try {
   verifyUtcConversion();
+  verifyTimeZoneOffsets();
   const natal = engine.calculateNatal(SAMPLE_INPUT, OPTIONS);
   verifyNatalShape(natal);
   verifyAgainstDirectSwiss(natal);
   verifyZodiacModeReset();
+  verifyHouseSystems();
 
   const predictive = engine.calculatePredictive(SAMPLE_INPUT, SAMPLE_TARGET, OPTIONS, natal);
   assert.ok(predictive.transit.bodies.length >= 10, "transit chart should contain core bodies");
@@ -87,6 +90,14 @@ try {
 function verifyUtcConversion() {
   const utc = toUtcParts(SAMPLE_INPUT.birthDate, SAMPLE_INPUT.birthTime, SAMPLE_INPUT.timezone);
   assert.equal(utc.iso, "1995-08-12T06:35:00.000Z", "Shanghai UTC+8 conversion should be exact");
+}
+
+function verifyTimeZoneOffsets() {
+  assert.equal(offsetForLocalTime("Asia/Shanghai", "2026-06-13", "12:00"), 8, "Shanghai should be UTC+8");
+  assert.equal(offsetForLocalTime("America/New_York", "2026-01-15", "12:00"), -5, "New York winter should be UTC-5");
+  assert.equal(offsetForLocalTime("America/New_York", "2026-07-15", "12:00"), -4, "New York summer should observe DST");
+  assert.equal(offsetForLocalTime("Europe/London", "2026-01-15", "12:00"), 0, "London winter should be UTC+0");
+  assert.equal(offsetForLocalTime("Europe/London", "2026-07-15", "12:00"), 1, "London summer should observe BST");
 }
 
 function verifyNatalShape(chart) {
@@ -148,6 +159,20 @@ function verifyZodiacModeReset() {
 
   assertApprox(tropicalSunA, tropicalSunB, 0.000001, "tropical calculation should remain stable after sidereal mode");
   assert.ok(minAngle(tropicalSunA, siderealSun) > 20, "sidereal Lahiri Sun should differ materially from tropical Sun");
+}
+
+function verifyHouseSystems() {
+  for (const houseSystem of Object.keys(HOUSE_SYSTEMS)) {
+    const chart = engine.calculateNatal({ ...SAMPLE_INPUT, houseSystem }, OPTIONS);
+    assert.equal(chart.houses.length, 12, `${houseSystem} should produce 12 houses`);
+    for (const house of chart.houses) {
+      assert.ok(Number.isFinite(house.longitude), `${houseSystem} house longitude should be finite`);
+      assert.ok(house.longitude >= 0 && house.longitude < 360, `${houseSystem} house longitude should be normalized`);
+    }
+    for (const body of chart.bodies) {
+      assert.ok(body.house >= 1 && body.house <= 12, `${houseSystem} ${body.key} house should be 1-12`);
+    }
+  }
 }
 
 function verifyExports(workbook) {
