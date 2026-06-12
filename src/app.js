@@ -24,6 +24,7 @@ const els = {
   markdown: document.querySelector("#markdown-output"),
   chartMeta: document.querySelector("#chart-meta"),
   copyButton: document.querySelector("#copy-button"),
+  shareButton: document.querySelector("#share-link-button"),
   saveButton: document.querySelector("#save-button"),
   refreshSaved: document.querySelector("#refresh-saved"),
   clearSaved: document.querySelector("#clear-saved"),
@@ -41,9 +42,10 @@ let engine;
 let places = [];
 let currentWorkbook;
 let currentMarkdown = "";
-let currentTab = "natal";
+let currentTab = "guide";
 let currentLongTermSegment = 0;
 let currentNatalSignature = "";
+let loadedShareHash = "";
 
 init();
 
@@ -107,6 +109,7 @@ async function init() {
     toggleActions(true);
     renderEmptyState();
     await renderSavedList();
+    await loadSharedChartFromHash();
   } catch (error) {
     console.error(error);
     setStatus("初始化失败", true);
@@ -205,6 +208,19 @@ document.querySelectorAll("[data-export]").forEach((button) => {
   });
 });
 
+els.shareButton?.addEventListener("click", async () => {
+  if (!currentWorkbook) {
+    toast("请先计算星盘");
+    return;
+  }
+  await navigator.clipboard.writeText(createShareUrl());
+  toast("已复制分享链接");
+});
+
+window.addEventListener("hashchange", () => {
+  loadSharedChartFromHash();
+});
+
 async function calculateAndRender(scope = "all") {
   if (!engine) return;
   setStatus(scopeStatus(scope));
@@ -221,7 +237,7 @@ async function calculateAndRender(scope = "all") {
 
     if (scope === "natal") {
       currentWorkbook = { natal };
-      currentTab = "natal";
+      currentTab = "guide";
     } else if (scope === "predictive") {
       const predictive = engine.calculatePredictive(natalInput, targetInput, options, natal);
       const longTerm = engine.calculateLongTermStructure(natalInput, options, natal);
@@ -261,6 +277,109 @@ function renderWorkbook() {
   els.chartMeta.textContent = `${currentWorkbook.natal.settings.zodiacModeName} / ${currentWorkbook.natal.settings.houseSystemName}`;
   renderTabs();
   updateMarkdown();
+}
+
+async function loadSharedChartFromHash() {
+  if (!engine) return;
+  const encoded = new URLSearchParams(window.location.hash.replace(/^#/, "")).get("chart");
+  if (!encoded || encoded === loadedShareHash) return;
+  loadedShareHash = encoded;
+  try {
+    const payload = decodeSharePayload(encoded);
+    if (payload?.v !== 1 || !payload.input) throw new Error("Invalid share payload");
+    fillForm({ ...payload.input, id: "", notes: "" });
+    applyShareOptions(payload.options || {});
+    const tab = shareTab(payload.tab);
+    await calculateAndRender("natal");
+    currentTab = tab;
+    renderTabs();
+    toast("已载入分享星盘");
+  } catch (error) {
+    console.warn(error);
+    toast("分享链接无法读取");
+  }
+}
+
+function createShareUrl() {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = `chart=${encodeSharePayload({
+    v: 1,
+    kind: "natal",
+    input: shareInput(readNatalInput()),
+    options: shareOptions(readOptions()),
+    tab: shareTab(currentTab),
+  })}`;
+  return url.toString();
+}
+
+function shareInput(input) {
+  return {
+    profileName: input.profileName,
+    subjectType: input.subjectType,
+    tags: input.tags,
+    birthDate: input.birthDate,
+    birthTime: input.birthTime,
+    timezone: input.timezone,
+    locationName: input.locationName,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    coordinatePrecision: input.coordinatePrecision,
+    houseSystem: input.houseSystem,
+    zodiacMode: input.zodiacMode,
+    aspectOrb: input.aspectOrb,
+  };
+}
+
+function shareOptions(options) {
+  return {
+    bodyKeys: options.bodyKeys,
+    pointKeys: options.pointKeys,
+    patternParticipants: options.patternParticipants,
+    lotFormulaSet: options.lotFormulaSet,
+    aspectAngles: options.aspectAngles,
+  };
+}
+
+function shareTab(tab) {
+  const allowed = new Set(["natal", "guide", "rulers", "stats", "classical"]);
+  return allowed.has(tab) ? tab : "guide";
+}
+
+function applyShareOptions(options) {
+  setCheckedValues("bodyKey", options.bodyKeys || DEFAULT_BODY_KEYS);
+  setCheckedValues("pointKey", options.pointKeys || DEFAULT_POINT_KEYS);
+  setCheckedValues("aspectAngle", options.aspectAngles || DEFAULT_ASPECT_ANGLES);
+  setSelectValue("#pattern-participants", options.patternParticipants || "core");
+  setSelectValue("#lot-formula-set", options.lotFormulaSet || "paulus");
+}
+
+function setCheckedValues(name, values) {
+  const selected = new Set(values.map(String));
+  document.querySelectorAll(`input[name="${name}"]`).forEach((input) => {
+    input.checked = selected.has(input.value);
+  });
+}
+
+function setSelectValue(selector, value) {
+  const select = document.querySelector(selector);
+  if (select && [...select.options].some((option) => option.value === value)) select.value = value;
+}
+
+function encodeSharePayload(payload) {
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+}
+
+function decodeSharePayload(value) {
+  const padded = String(value).replaceAll("-", "+").replaceAll("_", "/").padEnd(Math.ceil(value.length / 4) * 4, "=");
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
 }
 
 function scopeStatus(scope) {

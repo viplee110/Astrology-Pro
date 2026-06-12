@@ -44,6 +44,7 @@ try {
     { name: "mobile", width: 390, height: 900 },
   ]) {
     const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height } });
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: new URL(rootUrl).origin });
     const consoleErrors = [];
     const failedResponses = [];
     page.on("console", (msg) => {
@@ -59,6 +60,8 @@ try {
       title: document.title,
       h1: document.querySelector("h1")?.textContent,
       hasPrivacy: Boolean(document.querySelector("a[href='./privacy.html'], a[href=\"./privacy.html\"]")),
+      hasLearn: Boolean(document.querySelector("a[href='./learn.html'], a[href=\"./learn.html\"]")),
+      hasMethodology: Boolean(document.querySelector("a[href='./methodology.html'], a[href=\"./methodology.html\"]")),
       hasAiButtons: document.querySelectorAll("[data-ai-prompt]").length,
       bodyWidth: document.body.scrollWidth,
       viewportWidth: window.innerWidth,
@@ -72,6 +75,8 @@ try {
       meta: document.querySelector("#chart-meta")?.innerText,
       svgCount: document.querySelectorAll("svg.chart-svg").length,
       dataTabs: document.querySelector("#data-tabs")?.innerText,
+      activeTab: document.querySelector(".tab-button.active")?.textContent,
+      guideCards: document.querySelectorAll(".guide-card").length,
       markdownStart: document.querySelector("#markdown-output")?.value.slice(0, 220),
       horizontalOverflow: document.body.scrollWidth > window.innerWidth + 2,
     }));
@@ -88,6 +93,22 @@ try {
 
     await page.click("[data-ai-prompt='natal']");
     const toast = await page.locator(".toast").last().textContent({ timeout: 5000 }).catch(() => "");
+    await page.waitForTimeout(1900);
+
+    await page.click("#share-link-button");
+    const shareToast = await page.locator(".toast").last().textContent({ timeout: 5000 }).catch(() => "");
+    const shareUrl = await page.evaluate(() => navigator.clipboard.readText()).catch(() => "");
+    if (shareUrl) {
+      await page.goto(shareUrl, { waitUntil: "networkidle", timeout: 60000 });
+      await page.waitForFunction(() => document.querySelector("#summary-grid")?.innerText.includes("太阳"), null, { timeout: 60000 });
+    }
+    const shared = await page.evaluate(() => ({
+      hasChartHash: window.location.hash.startsWith("#chart="),
+      summary: document.querySelector("#summary-grid")?.innerText,
+      activeTab: document.querySelector(".tab-button.active")?.textContent,
+      guideCards: document.querySelectorAll(".guide-card").length,
+      horizontalOverflow: document.body.scrollWidth > window.innerWidth + 2,
+    }));
 
     await page.goto(`${rootUrl.replace(/\/$/, "")}/privacy.html`, { waitUntil: "networkidle", timeout: 30000 });
     const privacy = await page.evaluate(() => ({
@@ -95,7 +116,19 @@ try {
       h1: document.querySelector("h1")?.textContent,
     }));
 
-    results.push({ viewport: viewport.name, before, afterNatal, guide, guideToast, toast, privacy, consoleErrors, failedResponses });
+    await page.goto(`${rootUrl.replace(/\/$/, "")}/learn.html`, { waitUntil: "networkidle", timeout: 30000 });
+    const learn = await page.evaluate(() => ({
+      title: document.title,
+      h1: document.querySelector("h1")?.textContent,
+    }));
+
+    await page.goto(`${rootUrl.replace(/\/$/, "")}/methodology.html`, { waitUntil: "networkidle", timeout: 30000 });
+    const methodology = await page.evaluate(() => ({
+      title: document.title,
+      h1: document.querySelector("h1")?.textContent,
+    }));
+
+    results.push({ viewport: viewport.name, before, afterNatal, guide, guideToast, toast, shareToast, shareUrl, shared, privacy, learn, methodology, consoleErrors, failedResponses });
     await page.close();
   }
 } finally {
@@ -105,14 +138,26 @@ try {
 const failures = results.flatMap((result) => [
   ...result.consoleErrors.map((error) => `${result.viewport} console: ${error}`),
   ...result.failedResponses.map((response) => `${result.viewport} ${response.status}: ${response.url}`),
+  result.before.hasLearn ? null : `${result.viewport}: missing learn link`,
+  result.before.hasMethodology ? null : `${result.viewport}: missing methodology link`,
   result.before.hasAiButtons >= 4 ? null : `${result.viewport}: missing AI prompt buttons`,
   result.afterNatal.svgCount === 1 ? null : `${result.viewport}: chart SVG missing`,
   result.afterNatal.dataTabs?.includes("快速解释") ? null : `${result.viewport}: quick guide tab missing`,
+  result.afterNatal.activeTab?.includes("快速解释") ? null : `${result.viewport}: quick guide is not the default result tab`,
+  result.afterNatal.guideCards >= 8 ? null : `${result.viewport}: default guide cards missing`,
   result.guide.cardCount >= 8 ? null : `${result.viewport}: quick guide cards missing`,
   result.guideToast?.includes("解释") ? null : `${result.viewport}: guide copy failed`,
   result.toast?.includes("AI 本命") ? null : `${result.viewport}: AI prompt copy failed`,
+  result.shareToast?.includes("分享链接") ? null : `${result.viewport}: share link copy failed`,
+  result.shareUrl?.includes("#chart=") ? null : `${result.viewport}: share URL missing chart hash`,
+  result.shared?.summary?.includes("太阳") ? null : `${result.viewport}: shared chart failed to render`,
+  result.shared?.activeTab?.includes("快速解释") ? null : `${result.viewport}: shared chart did not preserve guide tab`,
+  result.shared?.guideCards >= 8 ? null : `${result.viewport}: shared guide cards missing`,
+  result.shared?.horizontalOverflow ? `${result.viewport}: shared chart horizontal overflow` : null,
   result.afterNatal.horizontalOverflow ? `${result.viewport}: horizontal overflow` : null,
   result.privacy.h1 === "隐私政策" ? null : `${result.viewport}: privacy page failed`,
+  result.learn.h1 === "星盘入门" ? null : `${result.viewport}: learn page failed`,
+  result.methodology.h1 === "计算方法" ? null : `${result.viewport}: methodology page failed`,
 ].filter(Boolean));
 
 console.log(JSON.stringify({ ok: failures.length === 0, failures, results }, null, 2));

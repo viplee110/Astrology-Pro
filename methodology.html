@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>计算方法 - Astrology Pro</title>
+    <meta name="description" content="Astrology Pro 的星盘计算方法说明：本地计算、Swiss Ephemeris、时区、宫位制、黄道制、相位容许度和导出资料。" />
+    <link rel="canonical" href="https://astrology-pro.vercel.app/methodology.html" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="legal-page">
+      <article class="legal-card">
+        <p><a href="./index.html">返回 Astrology Pro</a></p>
+        <h1>计算方法</h1>
+        <p>Astrology Pro 的目标是做一个透明、可复核、隐私优先的在线星盘工具。页面中的核心星盘计算在浏览器本地完成，不依赖后端接口保存出生资料。</p>
+
+        <h2>星历引擎</h2>
+        <p>行星、四轴、宫头和虚点位置由项目随附的 Swiss Ephemeris WASM 文件计算。页面会在结果中标出引擎版本、UTC 时间、儒略日、黄道制和宫位制，方便与其他软件比对。</p>
+
+        <h2>出生时间与地点</h2>
+        <ul>
+          <li>出生日期和出生时间按用户填写的当地时间读取。</li>
+          <li>城市搜索会自动填入经纬度和时区偏移；你也可以手动调整坐标和时区。</li>
+          <li>最终计算会先换算为 UTC，再送入星历引擎。</li>
+        </ul>
+
+        <h2>宫位、黄道与相位</h2>
+        <p>默认使用 Tropical 黄道和 Placidus 宫位制，也支持 Whole Sign、Equal、Koch、Regiomontanus、Campanus 等常见宫位制。相位默认包含合、六合、刑、拱、梅花和冲，容许度可以在专业参数中调整。</p>
+
+        <h2>解释与导出</h2>
+        <p>快速解释来自项目内置的基础含义库，用于帮助理解结构，不替代完整占星判断。文字版、Markdown、TXT、CSV、JSON 和 AI Prompt 都由当前浏览器中的星盘结果生成。</p>
+
+        <h2>可复核性</h2>
+        <p>项目包含本地回归脚本，用默认样例检查 UTC 换算、核心星体位置、宫位、相位、虚点、Markdown 和 AI Prompt。源码公开在 <a href="https://github.com/viplee110/Astrology-Pro" target="_blank" rel="noreferrer">GitHub</a>。</p>
+
+        <p class="muted">最后更新：2026-06-13</p>
+      </article>
+    </main>
+  </body>
+</html>

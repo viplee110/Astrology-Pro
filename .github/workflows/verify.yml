@@ -1,0 +1,28 @@
+name: Verify Astrology Pro
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  chart-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run chart regression
+        run: node scripts/verify-chart.mjs
+
+      - name: Check static pages
+        run: node scripts/check-static-pages.mjs
