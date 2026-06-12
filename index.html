@@ -364,9 +364,16 @@
       </section>
 
       <section class="panel chart-panel" aria-labelledby="chart-title">
-        <div class="section-head">
-          <h2 id="chart-title">星盘轮盘</h2>
-          <span id="chart-meta" class="muted"></span>
+        <div class="section-head result-head">
+          <div>
+            <h2 id="chart-title">星盘轮盘</h2>
+            <span id="chart-meta" class="muted"></span>
+          </div>
+          <div class="result-actions" aria-label="结果快捷操作">
+            <button type="button" class="ghost-button" data-quick-action="copy-guide">复制解释</button>
+            <button type="button" class="ghost-button" data-quick-action="share-link">分享链接</button>
+            <button type="button" class="ghost-button" data-quick-action="ai-natal">AI 本命</button>
+          </div>
         </div>
         <div id="chart-wheel" class="wheel-frame"></div>
         <div id="summary-grid" class="summary-grid"></div>
@@ -380,15 +387,13 @@
           <button id="copy-button" type="button" class="ghost-button">复制当前</button>
         </div>
         <div class="text-tools">
-          <div class="copy-row">
-            <button type="button" class="ghost-button" data-copy-mode="full">复制完整</button>
-            <button type="button" class="ghost-button" data-copy-mode="guide">复制解释</button>
-            <button type="button" class="ghost-button" id="share-link-button">复制分享链接</button>
-            <button type="button" class="ghost-button" data-copy-mode="natal">复制本命</button>
-            <button type="button" class="ghost-button" data-copy-mode="predictive">复制预测</button>
-            <button type="button" class="ghost-button" data-copy-mode="longTerm">复制长期</button>
-            <button type="button" class="ghost-button" data-copy-mode="relationship">复制合盘</button>
-            <button type="button" class="ghost-button" data-copy-mode="classical">复制古典</button>
+          <div class="tool-group">
+            <div class="tool-group-title">常用</div>
+            <div class="copy-row">
+              <button type="button" class="ghost-button" data-copy-mode="guide">复制解释</button>
+              <button type="button" class="ghost-button" id="share-link-button">复制分享链接</button>
+              <button type="button" class="ghost-button" data-copy-mode="natal">复制本命</button>
+            </div>
           </div>
           <p class="privacy-note">分享链接只在你主动复制时生成，会把本命资料和计算设置编码在 URL 中，不包含本地档案历史。</p>
           <div class="ai-copy-block">
@@ -404,6 +409,16 @@
             </div>
             <p class="privacy-note">Astrology Pro 不会主动上传出生资料；复制到第三方 AI 后，数据将由对应平台处理。</p>
           </div>
+          <details class="tool-group professional-tools">
+            <summary>专业复制</summary>
+            <div class="copy-row">
+              <button type="button" class="ghost-button" data-copy-mode="full">复制完整</button>
+              <button type="button" class="ghost-button" data-copy-mode="predictive">复制预测</button>
+              <button type="button" class="ghost-button" data-copy-mode="longTerm">复制长期</button>
+              <button type="button" class="ghost-button" data-copy-mode="relationship">复制合盘</button>
+              <button type="button" class="ghost-button" data-copy-mode="classical">复制古典</button>
+            </div>
+          </details>
           <label>
             文本模板
             <select id="text-mode">
@@ -434,6 +449,11 @@
         <a href="./disclaimer.html">免责声明</a>
       </span>
     </footer>
+    <div class="mobile-action-bar" aria-label="移动端常用操作">
+      <button type="button" data-quick-action="calculate-natal">计算本命</button>
+      <button type="button" class="ghost-button" data-quick-action="copy-guide">复制解释</button>
+      <button type="button" class="ghost-button" data-quick-action="share-link">分享</button>
+    </div>
     <script type="module" src="./src/app.js"></script>
   </body>
 </html>

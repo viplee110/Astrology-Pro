@@ -63,6 +63,8 @@ try {
       hasLearn: Boolean(document.querySelector("a[href='./learn.html'], a[href=\"./learn.html\"]")),
       hasMethodology: Boolean(document.querySelector("a[href='./methodology.html'], a[href=\"./methodology.html\"]")),
       hasAiButtons: document.querySelectorAll("[data-ai-prompt]").length,
+      quickActionCount: document.querySelectorAll("[data-quick-action]").length,
+      mobileActionBarVisible: getComputedStyle(document.querySelector(".mobile-action-bar")).display !== "none",
       bodyWidth: document.body.scrollWidth,
       viewportWidth: window.innerWidth,
     }));
@@ -77,9 +79,14 @@ try {
       dataTabs: document.querySelector("#data-tabs")?.innerText,
       activeTab: document.querySelector(".tab-button.active")?.textContent,
       guideCards: document.querySelectorAll(".guide-card").length,
+      resultActions: document.querySelector(".result-actions")?.innerText,
       markdownStart: document.querySelector("#markdown-output")?.value.slice(0, 220),
       horizontalOverflow: document.body.scrollWidth > window.innerWidth + 2,
     }));
+
+    await page.click(".result-actions [data-quick-action='copy-guide']");
+    const resultActionToast = await page.locator(".toast").last().textContent({ timeout: 5000 }).catch(() => "");
+    await page.waitForTimeout(1900);
 
     await page.click("[data-tab='guide']");
     const guide = await page.evaluate(() => ({
@@ -128,7 +135,7 @@ try {
       h1: document.querySelector("h1")?.textContent,
     }));
 
-    results.push({ viewport: viewport.name, before, afterNatal, guide, guideToast, toast, shareToast, shareUrl, shared, privacy, learn, methodology, consoleErrors, failedResponses });
+    results.push({ viewport: viewport.name, before, afterNatal, resultActionToast, guide, guideToast, toast, shareToast, shareUrl, shared, privacy, learn, methodology, consoleErrors, failedResponses });
     await page.close();
   }
 } finally {
@@ -141,10 +148,15 @@ const failures = results.flatMap((result) => [
   result.before.hasLearn ? null : `${result.viewport}: missing learn link`,
   result.before.hasMethodology ? null : `${result.viewport}: missing methodology link`,
   result.before.hasAiButtons >= 4 ? null : `${result.viewport}: missing AI prompt buttons`,
+  result.before.quickActionCount >= 6 ? null : `${result.viewport}: missing quick action buttons`,
+  result.viewport === "mobile" && !result.before.mobileActionBarVisible ? `${result.viewport}: mobile action bar hidden` : null,
+  result.viewport === "desktop" && result.before.mobileActionBarVisible ? `${result.viewport}: mobile action bar visible on desktop` : null,
   result.afterNatal.svgCount === 1 ? null : `${result.viewport}: chart SVG missing`,
   result.afterNatal.dataTabs?.includes("快速解释") ? null : `${result.viewport}: quick guide tab missing`,
   result.afterNatal.activeTab?.includes("快速解释") ? null : `${result.viewport}: quick guide is not the default result tab`,
   result.afterNatal.guideCards >= 8 ? null : `${result.viewport}: default guide cards missing`,
+  result.afterNatal.resultActions?.includes("分享链接") ? null : `${result.viewport}: result actions missing share link`,
+  result.resultActionToast?.includes("解释") ? null : `${result.viewport}: result action copy failed`,
   result.guide.cardCount >= 8 ? null : `${result.viewport}: quick guide cards missing`,
   result.guideToast?.includes("解释") ? null : `${result.viewport}: guide copy failed`,
   result.toast?.includes("AI 本命") ? null : `${result.viewport}: AI prompt copy failed`,

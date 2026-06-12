@@ -149,24 +149,13 @@ els.copyButton.addEventListener("click", async () => {
 
 document.querySelectorAll("[data-copy-mode]").forEach((button) => {
   button.addEventListener("click", async () => {
-    if (!currentWorkbook) {
-      toast("请先计算星盘");
-      return;
-    }
-    await navigator.clipboard.writeText(createMarkdown(currentWorkbook, button.dataset.copyMode, els.customTemplate.value));
-    toast(`已复制${button.textContent.replace("复制", "")}`);
+    await copyMarkdownMode(button.dataset.copyMode, `已复制${button.textContent.replace("复制", "")}`);
   });
 });
 
 document.querySelectorAll("[data-ai-prompt]").forEach((button) => {
   button.addEventListener("click", async () => {
-    if (!currentWorkbook) {
-      toast("请先计算星盘");
-      return;
-    }
-    const mode = button.dataset.aiPrompt;
-    await navigator.clipboard.writeText(createAiPrompt(currentWorkbook, mode));
-    toast(`已复制 ${button.textContent.trim()} Prompt`);
+    await copyAiPromptMode(button.dataset.aiPrompt, `已复制 ${button.textContent.trim()} Prompt`);
   });
 });
 
@@ -209,17 +198,60 @@ document.querySelectorAll("[data-export]").forEach((button) => {
 });
 
 els.shareButton?.addEventListener("click", async () => {
+  await copyShareLink();
+});
+
+document.querySelectorAll("[data-quick-action]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    const action = button.dataset.quickAction;
+    if (action === "calculate-natal") {
+      await calculateAndRender("natal");
+      return;
+    }
+    if (action === "copy-guide") {
+      await copyMarkdownMode("guide", "已复制解释");
+      return;
+    }
+    if (action === "share-link") {
+      await copyShareLink();
+      return;
+    }
+    if (action === "ai-natal") {
+      await copyAiPromptMode("natal", "已复制 AI 本命 Prompt");
+    }
+  });
+});
+
+window.addEventListener("hashchange", () => {
+  loadSharedChartFromHash();
+});
+
+async function copyMarkdownMode(mode, message) {
+  if (!currentWorkbook) {
+    toast("请先计算星盘");
+    return;
+  }
+  await navigator.clipboard.writeText(createMarkdown(currentWorkbook, mode, els.customTemplate.value));
+  toast(message);
+}
+
+async function copyAiPromptMode(mode, message) {
+  if (!currentWorkbook) {
+    toast("请先计算星盘");
+    return;
+  }
+  await navigator.clipboard.writeText(createAiPrompt(currentWorkbook, mode));
+  toast(message);
+}
+
+async function copyShareLink() {
   if (!currentWorkbook) {
     toast("请先计算星盘");
     return;
   }
   await navigator.clipboard.writeText(createShareUrl());
   toast("已复制分享链接");
-});
-
-window.addEventListener("hashchange", () => {
-  loadSharedChartFromHash();
-});
+}
 
 async function calculateAndRender(scope = "all") {
   if (!engine) return;
@@ -277,6 +309,14 @@ function renderWorkbook() {
   els.chartMeta.textContent = `${currentWorkbook.natal.settings.zodiacModeName} / ${currentWorkbook.natal.settings.houseSystemName}`;
   renderTabs();
   updateMarkdown();
+  focusResultsOnSmallScreen();
+}
+
+function focusResultsOnSmallScreen() {
+  if (!window.matchMedia("(max-width: 860px)").matches) return;
+  requestAnimationFrame(() => {
+    document.querySelector(".chart-panel")?.scrollIntoView({ block: "start", behavior: "smooth" });
+  });
 }
 
 async function loadSharedChartFromHash() {
