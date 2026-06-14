@@ -44,7 +44,7 @@ export function createAiPrompt(workbook, mode = "natal") {
   const focus = {
     natal: [
       "先总结人格核心、情绪需求与行动模式。",
-      "重点分析太阳、月亮、上升、命主星、宫位集中、主要相位与显著格局。",
+      "重点分析太阳、月亮、上升、命主星、宫位集中、行星之间相位、行星与四轴/虚点相位与显著格局。",
       "最后给出事业、关系、成长建议。",
     ],
     predictive: [
@@ -170,9 +170,9 @@ function tablesSection(chart) {
     "| --- | --- | --- | ---: | ---: | --- |",
     ...pointRows.map((point) => `| ${point.name} (${point.key}) | ${point.category || "四轴/角点"} | ${point.formatted} | ${point.house || ""} | ${formatDms(point.longitude)} | ${point.formula || ""} |`),
     "",
-    pointAspectRows.length ? "## 虚点相位" : "",
+    pointAspectRows.length ? "## 行星与四轴/虚点相位" : "",
     pointAspectRows.length ? "" : "",
-    pointAspectRows.length ? "| 星体 | 相位 | 虚点 | 容许度 |" : "",
+    pointAspectRows.length ? "| 星体 | 相位 | 四轴/虚点 | 容许度 |" : "",
     pointAspectRows.length ? "| --- | --- | --- | ---: |" : "",
     ...pointAspectRows.map((aspect) => `| ${aspect.planetA} | ${aspect.aspect} | ${aspect.planetB} | ${aspect.orbText} |`),
     "",
@@ -182,7 +182,7 @@ function tablesSection(chart) {
     "| ---: | --- | ---: |",
     ...chart.houses.map((house) => `| ${house.number} | ${house.formatted} | ${formatDms(house.longitude)} |`),
     "",
-    "## 主要相位",
+    "## 行星之间相位",
     "",
     "| 星体 A | 相位 | 星体 B | 容许度 | 入出相 |",
     "| --- | --- | --- | ---: | --- |",
@@ -397,6 +397,8 @@ function renderCustomTemplate(template, workbook) {
   const chart = workbook.natal || workbook;
   const core = getCore(chart);
   const point = (key) => chart.virtualPoints?.find((item) => item.key === key)?.formatted || chart.angles?.find((item) => item.key === key)?.formatted || "";
+  const bodyAspects = chart.aspects.map((aspect) => `${aspect.planetA}${aspect.aspect}${aspect.planetB} ${aspect.orbText}`).join("；");
+  const pointAspects = (chart.pointAspects || []).map((aspect) => `${aspect.planetA}${aspect.aspect}${aspect.planetB} ${aspect.orbText}`).join("；");
   return template
     .replaceAll("{{name}}", chart.input.profileName || "")
     .replaceAll("{{birth}}", `${chart.input.birthDate} ${chart.input.birthTime}`)
@@ -408,7 +410,8 @@ function renderCustomTemplate(template, workbook) {
     .replaceAll("{{ic}}", point("IC"))
     .replaceAll("{{vertex}}", point("Vertex"))
     .replaceAll("{{fortune}}", point("fortune"))
-    .replaceAll("{{aspects}}", chart.aspects.map((aspect) => `${aspect.planetA}${aspect.aspect}${aspect.planetB} ${aspect.orbText}`).join("；"));
+    .replaceAll("{{aspects}}", bodyAspects)
+    .replaceAll("{{pointAspects}}", pointAspects);
 }
 
 function getCore(chart) {

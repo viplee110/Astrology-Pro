@@ -1007,11 +1007,11 @@ function renderDataPanel() {
         ? table(["点", "类型", "星座度数", "宫位", "黄经", "公式"], pointTableRows(chart))
         : `<p class="muted">未选择四轴/虚点。</p>`,
       chart.pointAspects?.length
-        ? [`<h3 class="subhead">虚点相位</h3>`, table(["星体", "相位", "虚点", "容许度"], chart.pointAspects.map((aspect) => [aspect.planetA, aspect.aspect, aspect.planetB, aspect.orbText]))].join("")
+        ? [`<h3 class="subhead">行星与四轴/虚点相位</h3>`, table(["星体", "相位", "四轴/虚点", "容许度"], chart.pointAspects.map((aspect) => [aspect.planetA, aspect.aspect, aspect.planetB, aspect.orbText]))].join("")
         : "",
       `<h3 class="subhead">宫头</h3>`,
       table(["宫位", "位置", "黄经"], chart.houses.map((house) => [house.number, house.formatted, formatDms(house.longitude)])),
-      `<h3 class="subhead">相位</h3>`,
+      `<h3 class="subhead">行星之间相位</h3>`,
       table(["A", "相位", "B", "容许度", "入出相"], chart.aspects.map((aspect) => [aspect.planetA, aspect.aspect, aspect.planetB, aspect.orbText, aspect.applying ? "入相" : "出相"])),
     ].join("");
   }
