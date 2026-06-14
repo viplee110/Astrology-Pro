@@ -38,6 +38,11 @@ try {
 const browser = await chromium.launch({ headless: true, executablePath });
 const results = [];
 
+async function gotoReady(page, url, timeout = 60000) {
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout });
+  await page.waitForLoadState("load", { timeout: 30000 }).catch(() => {});
+}
+
 try {
   for (const viewport of [
     { name: "desktop", width: 1440, height: 1050 },
@@ -55,7 +60,8 @@ try {
       if (response.status() >= 400) failedResponses.push({ status: response.status(), url: response.url() });
     });
 
-    await page.goto(rootUrl, { waitUntil: "networkidle", timeout: 60000 });
+    await gotoReady(page, rootUrl);
+    await page.waitForSelector("#calculate-natal:not([disabled])", { timeout: 60000 });
     const before = await page.evaluate(() => ({
       title: document.title,
       h1: document.querySelector("h1")?.textContent,
@@ -148,7 +154,7 @@ try {
     const shareToast = await page.locator(".toast").last().textContent({ timeout: 5000 }).catch(() => "");
     const shareUrl = await page.evaluate(() => navigator.clipboard.readText()).catch(() => "");
     if (shareUrl) {
-      await page.goto(shareUrl, { waitUntil: "networkidle", timeout: 60000 });
+      await gotoReady(page, shareUrl);
       await page.waitForFunction(() => document.querySelector("#summary-grid")?.innerText.includes("太阳"), null, { timeout: 60000 });
     }
     const shared = await page.evaluate(() => ({
@@ -159,19 +165,19 @@ try {
       horizontalOverflow: document.body.scrollWidth > window.innerWidth + 2,
     }));
 
-    await page.goto(`${rootUrl.replace(/\/$/, "")}/privacy.html`, { waitUntil: "networkidle", timeout: 30000 });
+    await gotoReady(page, `${rootUrl.replace(/\/$/, "")}/privacy.html`, 30000);
     const privacy = await page.evaluate(() => ({
       title: document.title,
       h1: document.querySelector("h1")?.textContent,
     }));
 
-    await page.goto(`${rootUrl.replace(/\/$/, "")}/learn.html`, { waitUntil: "networkidle", timeout: 30000 });
+    await gotoReady(page, `${rootUrl.replace(/\/$/, "")}/learn.html`, 30000);
     const learn = await page.evaluate(() => ({
       title: document.title,
       h1: document.querySelector("h1")?.textContent,
     }));
 
-    await page.goto(`${rootUrl.replace(/\/$/, "")}/methodology.html`, { waitUntil: "networkidle", timeout: 30000 });
+    await gotoReady(page, `${rootUrl.replace(/\/$/, "")}/methodology.html`, 30000);
     const methodology = await page.evaluate(() => ({
       title: document.title,
       h1: document.querySelector("h1")?.textContent,
