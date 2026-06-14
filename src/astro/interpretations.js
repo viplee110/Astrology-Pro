@@ -109,6 +109,28 @@ export function createQuickInterpretation(chart) {
   };
 }
 
+export function createPlacementInsight(body) {
+  return placementInsight(body);
+}
+
+export function createAspectInsight(aspect) {
+  return {
+    title: `${aspect.planetA} ${aspect.aspect} ${aspect.planetB}`,
+    text: `${ASPECT_MEANINGS[aspect.aspect] || "这是一个需要结合双方星体性质理解的相位。"} 容许度 ${aspect.orbText}，${aspect.applying ? "入相，主题正在靠近或增强。" : "出相，主题更像已经形成的经验模式。"}`,
+  };
+}
+
+export function createAngleInsight(angle) {
+  return {
+    title: `${angle.name}：${angle.formatted}`,
+    text: `${ANGLE_MEANINGS[angle.key] || "重要角点。"} ${signText(angle)}。`,
+  };
+}
+
+export function houseMeaning(houseNumber) {
+  return HOUSE_MEANINGS[Number(houseNumber)] || "";
+}
+
 export function quickInterpretationMarkdown(chart) {
   const guide = createQuickInterpretation(chart);
   const blocks = [

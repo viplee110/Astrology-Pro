@@ -70,7 +70,7 @@ export function renderChartWheel(container, chart) {
       item.formatted,
       `黄经 ${dms(item.longitude)}`,
     ].join("\n");
-    return interactiveLine(point(center, house - 2, item.longitude, wheelRotation), point(center, outer, item.longitude, wheelRotation), "#b9aa98", 0.9, "house-cusp-line", tooltip);
+    return interactiveLine(point(center, house - 2, item.longitude, wheelRotation), point(center, outer, item.longitude, wheelRotation), "#b9aa98", 0.9, "house-cusp-line", tooltip, `data-house="${item.number}"`);
   }).join("");
   const signLines = Array.from({ length: 12 }, (_, index) => {
     const sign = ZODIAC_SIGNS[index];
@@ -111,7 +111,7 @@ export function renderChartWheel(container, chart) {
         angle.formatted,
         `黄经 ${dms(angle.longitude)}`,
       ].join("\n");
-      return interactiveLine(point(center, 78, angle.longitude, wheelRotation), point(center, outer + 10, angle.longitude, wheelRotation), ANGLE_STYLE[angle.key] || "#7a4f2b", 1.8, `angle-axis angle-axis-${angle.key}`, tooltip);
+      return interactiveLine(point(center, 78, angle.longitude, wheelRotation), point(center, outer + 10, angle.longitude, wheelRotation), ANGLE_STYLE[angle.key] || "#7a4f2b", 1.8, `angle-axis angle-axis-${angle.key}`, tooltip, `data-angle="${escapeAttr(angle.key)}"`);
     })
     .join("");
 
@@ -135,7 +135,7 @@ export function renderChartWheel(container, chart) {
         `宫头 ${houseItem.formatted}`,
         `黄经 ${dms(houseItem.longitude)}`,
       ].join("\n");
-      return hoverText("house-label", p, houseItem.number, tooltip);
+      return hoverText("house-label", p, houseItem.number, tooltip, 18, `data-house="${houseItem.number}"`);
     })
     .join("");
 
@@ -169,7 +169,7 @@ export function renderChartWheel(container, chart) {
         `黄经 ${dms(pointItem.longitude)}`,
         pointItem.formula ? `公式 ${pointItem.formula}` : "",
       ].filter(Boolean).join("\n");
-      return hoverGlyph("virtual-point-label", p, label, tooltip, 20);
+      return hoverGlyph("virtual-point-label", p, label, tooltip, 20, `data-point="${escapeAttr(pointItem.key)}"`);
     })
     .join("");
 
@@ -182,7 +182,7 @@ export function renderChartWheel(container, chart) {
         angle.formatted,
         `黄经 ${dms(angle.longitude)}`,
       ].join("\n");
-      return hoverGlyph("angle-label", p, angle.key, tooltip, 25);
+      return hoverGlyph("angle-label", p, angle.key, tooltip, 25, `data-angle="${escapeAttr(angle.key)}"`);
     })
     .join("");
 

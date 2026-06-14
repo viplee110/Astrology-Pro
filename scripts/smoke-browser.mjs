@@ -79,6 +79,12 @@ try {
       dataTabs: document.querySelector("#data-tabs")?.innerText,
       activeTab: document.querySelector(".tab-button.active")?.textContent,
       guideCards: document.querySelectorAll(".guide-card").length,
+      reading: {
+        hidden: document.querySelector("#reading-panel")?.hidden,
+        text: document.querySelector("#reading-panel")?.innerText.slice(0, 600),
+        shortcuts: document.querySelectorAll("#reading-panel .reading-shortcuts button").length,
+        selectedWheelNodes: document.querySelectorAll(".is-selected-reading").length,
+      },
       wheelStats: {
         signBands: document.querySelectorAll(".sign-band").length,
         degreeTicks: document.querySelectorAll(".degree-tick").length,
@@ -98,6 +104,26 @@ try {
       relatedAspects: document.querySelectorAll(".aspect-target.is-related").length,
       dimmedAspects: document.querySelectorAll(".aspect-target.is-dimmed").length,
       tooltipText: document.querySelector(".chart-tooltip.open")?.textContent || "",
+    }));
+
+    await page.click("[data-body='sun']");
+    const bodyReading = await page.evaluate(() => ({
+      text: document.querySelector("#reading-panel")?.innerText.slice(0, 900),
+      isManual: document.querySelector("#reading-panel")?.classList.contains("manual-selection"),
+      relatedCount: document.querySelectorAll("#reading-panel .reading-related-item").length,
+      selectedWheelNodes: document.querySelectorAll(".is-selected-reading").length,
+      horizontalOverflow: document.body.scrollWidth > window.innerWidth + 2,
+    }));
+
+    await page.click("[data-copy-reading]");
+    const readingToast = await page.locator(".toast").last().textContent({ timeout: 5000 }).catch(() => "");
+    await page.waitForTimeout(1900);
+
+    await page.click("#reading-panel .reading-related .reading-action");
+    const aspectReading = await page.evaluate(() => ({
+      text: document.querySelector("#reading-panel")?.innerText.slice(0, 900),
+      selectedWheelNodes: document.querySelectorAll(".is-selected-reading").length,
+      horizontalOverflow: document.body.scrollWidth > window.innerWidth + 2,
     }));
 
     await page.click(".result-actions [data-quick-action='copy-guide']");
@@ -151,7 +177,7 @@ try {
       h1: document.querySelector("h1")?.textContent,
     }));
 
-    results.push({ viewport: viewport.name, before, afterNatal, hoverStats, resultActionToast, guide, guideToast, toast, shareToast, shareUrl, shared, privacy, learn, methodology, consoleErrors, failedResponses });
+    results.push({ viewport: viewport.name, before, afterNatal, hoverStats, bodyReading, readingToast, aspectReading, resultActionToast, guide, guideToast, toast, shareToast, shareUrl, shared, privacy, learn, methodology, consoleErrors, failedResponses });
     await page.close();
   }
 } finally {
@@ -168,6 +194,10 @@ const failures = results.flatMap((result) => [
   result.viewport === "mobile" && !result.before.mobileActionBarVisible ? `${result.viewport}: mobile action bar hidden` : null,
   result.viewport === "desktop" && result.before.mobileActionBarVisible ? `${result.viewport}: mobile action bar visible on desktop` : null,
   result.afterNatal.svgCount === 1 ? null : `${result.viewport}: chart SVG missing`,
+  result.afterNatal.reading?.hidden === false ? null : `${result.viewport}: default reading panel hidden`,
+  result.afterNatal.reading?.text?.includes("太阳在狮子座第 8 宫") ? null : `${result.viewport}: default reading panel missing sun reading`,
+  result.afterNatal.reading?.shortcuts >= 4 ? null : `${result.viewport}: reading shortcuts missing`,
+  result.afterNatal.reading?.selectedWheelNodes > 0 ? null : `${result.viewport}: default reading wheel selection missing`,
   result.afterNatal.wheelStats?.signBands === 12 ? null : `${result.viewport}: zodiac sign bands missing`,
   result.afterNatal.wheelStats?.degreeTicks === 36 ? null : `${result.viewport}: degree ticks missing`,
   result.afterNatal.wheelStats?.angleAxes >= 4 ? null : `${result.viewport}: angle axes missing`,
@@ -176,6 +206,15 @@ const failures = results.flatMap((result) => [
   result.hoverStats?.relatedBodies > 1 ? null : `${result.viewport}: planet hover related bodies missing`,
   result.hoverStats?.relatedAspects > 0 ? null : `${result.viewport}: planet hover related aspects missing`,
   result.hoverStats?.tooltipText?.includes("太阳") ? null : `${result.viewport}: planet hover tooltip missing`,
+  result.bodyReading?.text?.includes("行星落点") && result.bodyReading?.text?.includes("相关相位") ? null : `${result.viewport}: body reading panel failed`,
+  result.bodyReading?.isManual ? null : `${result.viewport}: manual reading state missing`,
+  result.bodyReading?.relatedCount > 0 ? null : `${result.viewport}: body reading related items missing`,
+  result.bodyReading?.selectedWheelNodes > 0 ? null : `${result.viewport}: body reading wheel selection missing`,
+  result.bodyReading?.horizontalOverflow ? `${result.viewport}: body reading horizontal overflow` : null,
+  result.readingToast?.includes("阅读卡") ? null : `${result.viewport}: reading copy failed`,
+  result.aspectReading?.text?.includes("相位解读") && result.aspectReading?.text?.includes("容许度") ? null : `${result.viewport}: aspect reading panel failed`,
+  result.aspectReading?.selectedWheelNodes > 0 ? null : `${result.viewport}: aspect reading wheel selection missing`,
+  result.aspectReading?.horizontalOverflow ? `${result.viewport}: aspect reading horizontal overflow` : null,
   result.afterNatal.dataTabs?.includes("快速解释") ? null : `${result.viewport}: quick guide tab missing`,
   result.afterNatal.activeTab?.includes("快速解释") ? null : `${result.viewport}: quick guide is not the default result tab`,
   result.afterNatal.guideCards >= 8 ? null : `${result.viewport}: default guide cards missing`,

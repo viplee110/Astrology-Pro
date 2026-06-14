@@ -7,7 +7,13 @@ import {
   VIRTUAL_POINT_DEFINITIONS,
 } from "./astro/constants.js";
 import { formatDecimal, formatDms } from "./astro/format.js";
-import { createQuickInterpretation } from "./astro/interpretations.js";
+import {
+  createAngleInsight,
+  createAspectInsight,
+  createPlacementInsight,
+  createQuickInterpretation,
+  houseMeaning,
+} from "./astro/interpretations.js";
 import { findPlaceByName, loadPlaces, placeMatches, timeZoneIdForPlace } from "./astro/places.js";
 import { offsetForLocalTime } from "./astro/timezone.js";
 import { SwissChartEngine } from "./astro/swissEngine.js";
@@ -20,6 +26,7 @@ const els = {
   form: document.querySelector("#chart-form"),
   status: document.querySelector("#engine-status"),
   wheel: document.querySelector("#chart-wheel"),
+  readingPanel: document.querySelector("#reading-panel"),
   summary: document.querySelector("#summary-grid"),
   markdown: document.querySelector("#markdown-output"),
   chartMeta: document.querySelector("#chart-meta"),
@@ -46,6 +53,9 @@ let currentTab = "guide";
 let currentLongTermSegment = 0;
 let currentNatalSignature = "";
 let loadedShareHash = "";
+let currentReadingSelection = null;
+let readingWasManuallySelected = false;
+let currentReadingText = "";
 
 init();
 
@@ -101,6 +111,7 @@ async function init() {
     time: document.querySelector("#partner-time"),
   });
   setupRelocationBuilder();
+  setupReadingMode();
 
   try {
     setStatus("初始化 Swiss Ephemeris");
@@ -119,6 +130,8 @@ async function init() {
 
 function renderEmptyState() {
   els.wheel.innerHTML = `<p class="muted">填写资料后点击“计算本命”或对应栏目的计算按钮生成星盘。</p>`;
+  els.readingPanel.hidden = true;
+  els.readingPanel.innerHTML = "";
   els.summary.innerHTML = "";
   els.chartMeta.textContent = "";
   els.tabs.innerHTML = "";
@@ -126,6 +139,9 @@ function renderEmptyState() {
   els.markdown.value = "";
   currentWorkbook = null;
   currentMarkdown = "";
+  currentReadingSelection = null;
+  readingWasManuallySelected = false;
+  currentReadingText = "";
   currentNatalSignature = "";
 }
 
@@ -305,6 +321,9 @@ async function calculateAndRender(scope = "all") {
 
 function renderWorkbook() {
   renderChartWheel(els.wheel, currentWorkbook.natal);
+  ensureReadingSelection();
+  enhanceWheelReadingTargets();
+  renderReadingPanel();
   renderSummary(els.summary, currentWorkbook.natal);
   els.chartMeta.textContent = `${currentWorkbook.natal.settings.zodiacModeName} / ${currentWorkbook.natal.settings.houseSystemName}`;
   renderTabs();
@@ -595,6 +614,353 @@ function setupRelocationBuilder() {
   });
   plan.addEventListener("input", renderRelocationList);
   renderRelocationList();
+}
+
+const READING_SELECTOR = "[data-body], [data-aspect-a], [data-house], [data-angle], [data-point]";
+
+function setupReadingMode() {
+  els.wheel.addEventListener("click", (event) => {
+    activateReadingFromWheel(event.target);
+  });
+  els.wheel.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const target = event.target.closest?.(READING_SELECTOR);
+    if (!target) return;
+    event.preventDefault();
+    activateReadingFromWheel(target);
+  });
+  els.readingPanel.addEventListener("click", async (event) => {
+    if (event.target.closest("[data-close-reading]")) {
+      els.readingPanel.hidden = true;
+      clearReadingSelectionHighlight();
+      return;
+    }
+    if (event.target.closest("[data-copy-reading]")) {
+      if (!currentReadingText) return;
+      await navigator.clipboard.writeText(currentReadingText);
+      toast("已复制阅读卡");
+      return;
+    }
+    const button = event.target.closest("[data-reading-body], [data-reading-aspect-a], [data-reading-house], [data-reading-angle], [data-reading-point]");
+    if (!button || !currentWorkbook) return;
+    const nextSelection = readingSelectionFromDataset(button.dataset);
+    if (!nextSelection) return;
+    currentReadingSelection = nextSelection;
+    readingWasManuallySelected = true;
+    renderReadingPanel();
+  });
+}
+
+function activateReadingFromWheel(target) {
+  if (!currentWorkbook) return;
+  const node = target.closest?.(READING_SELECTOR);
+  if (!node || !els.wheel.contains(node)) return;
+  const selection = readingSelectionFromDataset(node.dataset);
+  if (!selection) return;
+  currentReadingSelection = selection;
+  readingWasManuallySelected = true;
+  clearWheelTooltipState();
+  renderReadingPanel();
+}
+
+function ensureReadingSelection() {
+  const chart = currentWorkbook?.natal;
+  if (!chart) return;
+  if (isReadingSelectionValid(chart, currentReadingSelection)) return;
+  const sun = chart.bodies.find((body) => body.key === "sun") || chart.bodies[0];
+  currentReadingSelection = sun ? { type: "body", key: sun.key } : null;
+  readingWasManuallySelected = false;
+}
+
+function enhanceWheelReadingTargets() {
+  els.wheel.querySelectorAll(READING_SELECTOR).forEach((node) => {
+    node.setAttribute("role", "button");
+    node.setAttribute("tabindex", "0");
+    const title = node.dataset.tooltip?.split("\n")[0] || "星盘元素";
+    node.setAttribute("aria-label", `查看${title}的解释`);
+  });
+}
+
+function renderReadingPanel() {
+  const chart = currentWorkbook?.natal;
+  if (!chart || !currentReadingSelection) {
+    els.readingPanel.hidden = true;
+    currentReadingText = "";
+    return;
+  }
+  const reading = createReadingCard(chart, currentReadingSelection);
+  if (!reading) {
+    els.readingPanel.hidden = true;
+    currentReadingText = "";
+    return;
+  }
+  currentReadingText = readingText(reading);
+  els.readingPanel.hidden = false;
+  els.readingPanel.classList.toggle("manual-selection", readingWasManuallySelected);
+  els.readingPanel.innerHTML = `
+    <div class="reading-header">
+      <div>
+        <span class="reading-kicker">${escapeHtml(reading.kicker)}</span>
+        <h3>${escapeHtml(reading.title)}</h3>
+        <p>${escapeHtml(reading.meta)}</p>
+      </div>
+      <div class="reading-actions">
+        <button type="button" class="ghost-button small-button" data-copy-reading>复制此解释</button>
+        <button type="button" class="ghost-button small-button" data-close-reading>关闭</button>
+      </div>
+    </div>
+    <p class="reading-text">${escapeHtml(reading.text)}</p>
+    ${reading.facts.length ? `<div class="reading-facts">${reading.facts.map(([label, value]) => `<span><strong>${escapeHtml(label)}</strong>${escapeHtml(value)}</span>`).join("")}</div>` : ""}
+    ${reading.related.length ? `<div class="reading-related"><h4>${escapeHtml(reading.relatedTitle)}</h4>${reading.related.map(readingRelatedItem).join("")}</div>` : ""}
+    <div class="reading-shortcuts" aria-label="快速阅读入口">
+      ${readingShortcutButton("太阳", { type: "body", key: "sun" })}
+      ${readingShortcutButton("月亮", { type: "body", key: "moon" })}
+      ${readingShortcutButton("上升", { type: "angle", key: "ASC" })}
+      ${readingShortcutButton("第 1 宫", { type: "house", house: 1 })}
+    </div>
+  `;
+  highlightReadingSelection();
+}
+
+function createReadingCard(chart, selection) {
+  if (selection.type === "body") return bodyReading(chart, selection.key);
+  if (selection.type === "aspect") return aspectReading(chart, selection.keyA, selection.keyB);
+  if (selection.type === "house") return houseReading(chart, selection.house);
+  if (selection.type === "angle") return angleReading(chart, selection.key);
+  if (selection.type === "point") return pointReading(chart, selection.key);
+  return null;
+}
+
+function bodyReading(chart, key) {
+  const body = chart.bodies.find((item) => item.key === key);
+  if (!body) return null;
+  const insight = createPlacementInsight(body);
+  const relatedAspects = chart.aspects
+    .filter((aspect) => aspect.keyA === body.key || aspect.keyB === body.key)
+    .slice(0, 5);
+  return {
+    kicker: "行星落点",
+    title: insight.title,
+    meta: `${body.formatted} / 第 ${body.house} 宫${body.retrograde ? " / 逆行" : ""}`,
+    text: insight.text,
+    facts: compactFacts([
+      ["星座", body.sign.zh],
+      ["宫位", `第 ${body.house} 宫`],
+      ["状态", body.dignitySummary || ""],
+      ["速度", Number.isFinite(Number(body.speed)) ? Number(body.speed).toFixed(5) : ""],
+    ]),
+    relatedTitle: "相关相位",
+    related: relatedAspects.map((aspect) => {
+      const otherKey = aspect.keyA === body.key ? aspect.keyB : aspect.keyA;
+      const other = chart.bodies.find((item) => item.key === otherKey);
+      return {
+        title: `${aspect.planetA} ${aspect.aspect} ${aspect.planetB}`,
+        text: `${createAspectInsight(aspect).text}${other ? ` 也可以继续查看${other.name}的落点。` : ""}`,
+        action: { type: "aspect", keyA: aspect.keyA, keyB: aspect.keyB, label: "查看相位" },
+      };
+    }),
+  };
+}
+
+function aspectReading(chart, keyA, keyB) {
+  const aspect = findAspect(chart, keyA, keyB);
+  if (!aspect) return null;
+  const insight = createAspectInsight(aspect);
+  const bodyA = chart.bodies.find((body) => body.key === aspect.keyA);
+  const bodyB = chart.bodies.find((body) => body.key === aspect.keyB);
+  return {
+    kicker: "相位解读",
+    title: insight.title,
+    meta: `容许度 ${aspect.orbText} / ${aspect.applying ? "入相" : "出相"}`,
+    text: insight.text,
+    facts: compactFacts([
+      [aspect.planetA, bodyA ? `${bodyA.formatted} / 第 ${bodyA.house} 宫` : ""],
+      [aspect.planetB, bodyB ? `${bodyB.formatted} / 第 ${bodyB.house} 宫` : ""],
+      ["相位", aspect.aspect],
+      ["容许度", aspect.orbText],
+    ]),
+    relatedTitle: "继续拆解",
+    related: [bodyA, bodyB].filter(Boolean).map((body) => ({
+      title: `${body.name}落点`,
+      text: `${body.formatted} / 第 ${body.house} 宫。点开可以单独看这颗星体如何表达。`,
+      action: { type: "body", key: body.key, label: `查看${body.name}` },
+    })),
+  };
+}
+
+function houseReading(chart, houseNumber) {
+  const number = Number(houseNumber);
+  const house = chart.houses.find((item) => Number(item.number) === number);
+  if (!house) return null;
+  const bodies = chart.bodies.filter((body) => Number(body.house) === number);
+  const meaning = houseMeaning(number);
+  return {
+    kicker: "宫位主题",
+    title: `第 ${number} 宫：${house.formatted}`,
+    meta: `宫头 ${house.formatted} / 黄经 ${formatDms(house.longitude)}`,
+    text: `第 ${number} 宫关注${stripEnd(meaning || "对应生活领域")}。${bodies.length ? `这里有${bodies.map((body) => body.name).join("、")}，说明这些经验会更容易通过第 ${number} 宫主题表现出来。` : "这里没有当前显示的星体，不代表主题不存在，而是需要看宫主星和相关相位。"}`,
+    facts: compactFacts([
+      ["宫头", house.formatted],
+      ["黄经", formatDms(house.longitude)],
+      ["落入星体", bodies.map((body) => body.name).join("、")],
+    ]),
+    relatedTitle: "宫内星体",
+    related: bodies.map((body) => ({
+      title: `${body.name}在第 ${number} 宫`,
+      text: createPlacementInsight(body).text,
+      action: { type: "body", key: body.key, label: `查看${body.name}` },
+    })),
+  };
+}
+
+function angleReading(chart, key) {
+  const angle = chart.angles.find((item) => item.key === key);
+  if (!angle) return null;
+  const insight = createAngleInsight(angle);
+  return {
+    kicker: "四轴提示",
+    title: insight.title,
+    meta: `${angle.key} / ${angle.formatted}`,
+    text: insight.text,
+    facts: compactFacts([
+      ["星座", angle.sign?.zh || ""],
+      ["位置", angle.formatted],
+      ["黄经", formatDms(angle.longitude)],
+    ]),
+    relatedTitle: "相关入口",
+    related: [
+      { title: "看第 1 宫", text: "上升和第 1 宫一起描述外在呈现、身体感和进入世界的方式。", action: { type: "house", house: 1, label: "查看第 1 宫" } },
+      { title: "看太阳", text: "太阳能补充说明核心意志和自我认同。", action: { type: "body", key: "sun", label: "查看太阳" } },
+    ],
+  };
+}
+
+function pointReading(chart, key) {
+  const point = chart.virtualPoints?.find((item) => item.key === key);
+  if (!point) return null;
+  return {
+    kicker: "虚点 / 阿拉伯点",
+    title: `${point.name}：${point.formatted}`,
+    meta: `${point.category || "point"}${point.house ? ` / 第 ${point.house} 宫` : ""}`,
+    text: `${point.name}位于${point.formatted}${point.house ? `，落在第 ${point.house} 宫` : ""}。这类点位更适合作为补充线索，建议结合宫位、宫主星和触发相位一起看。${point.formula ? ` 当前公式：${point.formula}。` : ""}`,
+    facts: compactFacts([
+      ["位置", point.formatted],
+      ["宫位", point.house ? `第 ${point.house} 宫` : ""],
+      ["公式", point.formula || ""],
+    ]),
+    relatedTitle: "相关入口",
+    related: point.house ? [{ title: `第 ${point.house} 宫`, text: "查看这个点位所在宫位的生活主题。", action: { type: "house", house: point.house, label: `查看第 ${point.house} 宫` } }] : [],
+  };
+}
+
+function readingRelatedItem(item) {
+  return `
+    <article class="reading-related-item">
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <p>${escapeHtml(item.text)}</p>
+      </div>
+      ${item.action ? readingActionButton(item.action) : ""}
+    </article>
+  `;
+}
+
+function readingActionButton(action) {
+  const attrs = readingActionAttrs(action);
+  return `<button type="button" class="ghost-button small-button reading-action" ${attrs}>${escapeHtml(action.label)}</button>`;
+}
+
+function readingShortcutButton(label, selection) {
+  return `<button type="button" class="ghost-button small-button" ${readingActionAttrs({ ...selection, label })}>${escapeHtml(label)}</button>`;
+}
+
+function readingActionAttrs(action) {
+  if (action.type === "body") return `data-reading-body="${escapeHtml(action.key)}"`;
+  if (action.type === "aspect") return `data-reading-aspect-a="${escapeHtml(action.keyA)}" data-reading-aspect-b="${escapeHtml(action.keyB)}"`;
+  if (action.type === "house") return `data-reading-house="${escapeHtml(action.house)}"`;
+  if (action.type === "angle") return `data-reading-angle="${escapeHtml(action.key)}"`;
+  if (action.type === "point") return `data-reading-point="${escapeHtml(action.key)}"`;
+  return "";
+}
+
+function readingSelectionFromDataset(dataset) {
+  if (dataset.readingBody || dataset.body) return { type: "body", key: dataset.readingBody || dataset.body };
+  if (dataset.readingAspectA || dataset.aspectA) return { type: "aspect", keyA: dataset.readingAspectA || dataset.aspectA, keyB: dataset.readingAspectB || dataset.aspectB };
+  if (dataset.readingHouse || dataset.house) return { type: "house", house: Number(dataset.readingHouse || dataset.house) };
+  if (dataset.readingAngle || dataset.angle) return { type: "angle", key: dataset.readingAngle || dataset.angle };
+  if (dataset.readingPoint || dataset.point) return { type: "point", key: dataset.readingPoint || dataset.point };
+  return null;
+}
+
+function isReadingSelectionValid(chart, selection) {
+  if (!selection) return false;
+  if (selection.type === "body") return chart.bodies.some((body) => body.key === selection.key);
+  if (selection.type === "aspect") return Boolean(findAspect(chart, selection.keyA, selection.keyB));
+  if (selection.type === "house") return chart.houses.some((house) => Number(house.number) === Number(selection.house));
+  if (selection.type === "angle") return chart.angles.some((angle) => angle.key === selection.key);
+  if (selection.type === "point") return chart.virtualPoints?.some((point) => point.key === selection.key);
+  return false;
+}
+
+function findAspect(chart, keyA, keyB) {
+  return chart.aspects.find((aspect) => (
+    (aspect.keyA === keyA && aspect.keyB === keyB) ||
+    (aspect.keyA === keyB && aspect.keyB === keyA)
+  ));
+}
+
+function highlightReadingSelection() {
+  clearReadingSelectionHighlight();
+  const selection = currentReadingSelection;
+  if (!selection) return;
+  let selector = "";
+  if (selection.type === "body") selector = `[data-body="${selection.key}"]`;
+  if (selection.type === "aspect") selector = `.aspect-target[data-aspect-a="${selection.keyA}"][data-aspect-b="${selection.keyB}"], .aspect-target[data-aspect-a="${selection.keyB}"][data-aspect-b="${selection.keyA}"]`;
+  if (selection.type === "house") selector = `[data-house="${selection.house}"]`;
+  if (selection.type === "angle") selector = `[data-angle="${selection.key}"]`;
+  if (selection.type === "point") selector = `[data-point="${selection.key}"]`;
+  if (!selector) return;
+  els.wheel.querySelectorAll(selector).forEach((node) => {
+    node.classList.add("is-selected-reading");
+  });
+}
+
+function clearReadingSelectionHighlight() {
+  els.wheel.querySelectorAll(".is-selected-reading").forEach((node) => {
+    node.classList.remove("is-selected-reading");
+  });
+}
+
+function clearWheelTooltipState() {
+  const tooltip = els.wheel.querySelector(".chart-tooltip");
+  tooltip?.classList.remove("open");
+  tooltip?.setAttribute("aria-hidden", "true");
+  els.wheel.querySelectorAll(".is-related, .is-dimmed").forEach((node) => {
+    node.classList.remove("is-related", "is-dimmed");
+  });
+}
+
+function readingText(reading) {
+  const facts = reading.facts.map(([label, value]) => `- ${label}：${value}`);
+  const related = reading.related.map((item) => `- ${item.title}：${item.text}`);
+  return [
+    `# ${reading.title}`,
+    reading.meta,
+    "",
+    reading.text,
+    facts.length ? "\n## 关键资料" : "",
+    ...facts,
+    related.length ? "\n## 相关线索" : "",
+    ...related,
+  ].filter(Boolean).join("\n");
+}
+
+function compactFacts(items) {
+  return items.filter(([, value]) => String(value || "").trim());
+}
+
+function stripEnd(value) {
+  return String(value || "").replace(/[。；;.\s]+$/u, "");
 }
 
 function updateMarkdown() {
